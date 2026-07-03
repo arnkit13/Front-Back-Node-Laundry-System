@@ -15,12 +15,15 @@ public class SoapProductRequest {
     @NotBlank(message = "Unit of measurement is required")
     private String unit;
 
+    private Double minStock;
+
     public SoapProductRequest() {}
 
-    public SoapProductRequest(String name, Double quantity, String unit) {
+    public SoapProductRequest(String name, Double quantity, String unit, Double minStock) {
         this.name = name;
         this.quantity = quantity;
         this.unit = unit;
+        this.minStock = minStock;
     }
 
     public String getName() { return name; }
@@ -31,4 +34,7 @@ public class SoapProductRequest {
 
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
+
+    public Double getMinStock() { return minStock; }
+    public void setMinStock(Double minStock) { this.minStock = minStock; }
 }

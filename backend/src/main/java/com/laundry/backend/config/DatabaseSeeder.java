@@ -3,9 +3,14 @@ package com.laundry.backend.config;
 import com.laundry.backend.entity.Branch;
 import com.laundry.backend.entity.User;
 import com.laundry.backend.entity.LaundryService;
+import com.laundry.backend.entity.SoapInventoryHistory;
 import com.laundry.backend.repository.BranchRepository;
 import com.laundry.backend.repository.UserRepository;
 import com.laundry.backend.repository.LaundryServiceRepository;
+import com.laundry.backend.repository.SoapProductRepository;
+import com.laundry.backend.repository.SoapInventoryHistoryRepository;
+import com.laundry.backend.repository.TransactionRepository;
+import com.laundry.backend.entity.LaundryTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,10 +32,47 @@ public class DatabaseSeeder implements CommandLineRunner {
     private LaundryServiceRepository laundryServiceRepository;
 
     @Autowired
+    private SoapProductRepository soapProductRepository;
+
+    @Autowired
+    private SoapInventoryHistoryRepository soapInventoryHistoryRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
+        // 0. Clean up static/mock soap products if present
+        List<String> staticsToDelete = Arrays.asList(
+                "Powder Detergent (Lemon Clean)",
+                "Liquid Detergent (Ocean Fresh)",
+                "Fabric Softener (Lavender Mist)"
+        );
+        for (String name : staticsToDelete) {
+            soapProductRepository.findByName(name).ifPresent(product -> {
+                try {
+                    List<LaundryTransaction> transactions = transactionRepository.findBySoapProduct(product);
+                    for (LaundryTransaction tx : transactions) {
+                        transactionRepository.delete(tx);
+                    }
+                    transactionRepository.flush();
+                    
+                    List<SoapInventoryHistory> histories = soapInventoryHistoryRepository.findBySoapProduct(product);
+                    soapInventoryHistoryRepository.deleteAll(histories);
+                    soapInventoryHistoryRepository.flush();
+                    
+                    soapProductRepository.delete(product);
+                    soapProductRepository.flush();
+                    System.out.println("Cleaned up static product: " + name);
+                } catch (Exception ex) {
+                    System.err.println("Could not delete static product due to constraint check: " + name + " - " + ex.getMessage());
+                }
+            });
+        }
+
         // 1. Seed Users
         if (userRepository.count() == 0) {
             User admin = User.builder()

@@ -54,12 +54,14 @@ const Inventory = () => {
   const [newName, setNewName] = useState('');
   const [newQty, setNewQty] = useState('');
   const [newUnit, setNewUnit] = useState('kg');
+  const [newMinStock, setNewMinStock] = useState('20');
   const [addError, setAddError] = useState('');
   const [submittingAdd, setSubmittingAdd] = useState(false);
 
   // Adjust product stock form
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [adjustQty, setAdjustQty] = useState('');
+  const [adjustMinStock, setAdjustMinStock] = useState('20');
   const [adjustNotes, setAdjustNotes] = useState('');
   const [adjustError, setAdjustError] = useState('');
   const [submittingAdjust, setSubmittingAdjust] = useState(false);
@@ -122,6 +124,7 @@ const Inventory = () => {
     setNewName('');
     setNewQty('');
     setNewUnit('kg');
+    setNewMinStock('20');
   };
 
   const handleCloseAddModal = () => setOpenAddModal(false);
@@ -145,6 +148,7 @@ const Inventory = () => {
         name: newName.trim(),
         quantity: parseFloat(newQty),
         unit: newUnit,
+        minStock: parseFloat(newMinStock || '20'),
       });
       handleCloseAddModal();
       loadData();
@@ -161,6 +165,7 @@ const Inventory = () => {
     setOpenAdjustModal(true);
     setAdjustError('');
     setAdjustQty('');
+    setAdjustMinStock(product.minStock ? product.minStock.toString() : '20');
     setAdjustNotes('');
   };
 
@@ -170,12 +175,14 @@ const Inventory = () => {
     e.preventDefault();
     setAdjustError('');
 
-    if (!adjustQty || parseFloat(adjustQty) === 0) {
-      setAdjustError('Please specify a positive or negative quantity change.');
+    const change = adjustQty ? parseFloat(adjustQty) : 0.0;
+    const newMin = adjustMinStock ? parseFloat(adjustMinStock) : 20.0;
+
+    if (change === 0 && newMin === selectedProduct.minStock) {
+      setAdjustError('Please specify a quantity change or update the minimum threshold.');
       return;
     }
 
-    const change = parseFloat(adjustQty);
     if (selectedProduct.quantity + change < 0) {
       setAdjustError(`Insufficient stock! Current stock is ${selectedProduct.quantity} ${selectedProduct.unit}. Adjusted level cannot fall below 0.`);
       return;
@@ -185,6 +192,7 @@ const Inventory = () => {
     try {
       await api.put(`/api/inventory/${selectedProduct.id}/adjust`, {
         quantityChanged: change,
+        minStock: newMin,
         notes: adjustNotes.trim() || 'Manual stock level adjustment',
       });
       handleCloseAdjustModal();
@@ -241,34 +249,41 @@ const Inventory = () => {
       ) : activeTab === 0 ? (
         /* Tab 0: Product Stocks List */
         <Card>
-          <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 0 }}>
+          <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 2 }}>
             <Table>
-              <TableHead sx={{ bgcolor: 'background.default' }}>
+              <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Product Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Current Stock Quantity</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>No.</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763' }}>List of Items</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Unit</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Min</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Initial</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Available</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }} align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {products.length > 0 ? (
-                  products.map((product) => {
-                    const isLow = product.quantity < 5.0;
+                  products.map((product, idx) => {
+                    const minVal = product.minStock !== null ? product.minStock : 20.0;
+                    const initialVal = product.initialStock !== null ? product.initialStock : product.quantity;
+                    const isLow = product.quantity < minVal;
                     return (
                       <TableRow key={product.id} hover>
-                        <TableCell>#{product.id}</TableCell>
+                        <TableCell sx={{ textAlign: 'center' }}>{idx + 1}</TableCell>
                         <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>{product.name}</TableCell>
-                        <TableCell sx={{ fontWeight: 500 }}>
-                          {product.quantity.toFixed(2)} {product.unit}
+                        <TableCell sx={{ textAlign: 'center' }}>{product.unit}</TableCell>
+                        <TableCell sx={{ textAlign: 'center' }}>{minVal % 1 === 0 ? minVal : minVal.toFixed(2)}</TableCell>
+                        <TableCell sx={{ textAlign: 'center' }}>{initialVal % 1 === 0 ? initialVal : initialVal.toFixed(2)}</TableCell>
+                        <TableCell sx={{ textAlign: 'center', fontWeight: 'bold', color: isLow ? 'error.main' : 'text.primary' }}>
+                          {product.quantity % 1 === 0 ? product.quantity : product.quantity.toFixed(2)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ textAlign: 'center' }}>
                           <Chip
-                            icon={isLow ? <WarningIcon fontSize="small" /> : undefined}
-                            label={isLow ? 'Low Stock' : 'Good Stock'}
-                            color={isLow ? 'warning' : 'success'}
-                            variant={isLow ? 'outlined' : 'filled'}
+                            label={isLow ? 'Restock' : 'In Stock'}
+                            color={isLow ? 'error' : 'success'}
+                            variant={isLow ? 'filled' : 'filled'}
                             size="small"
                             sx={{ fontWeight: 'bold' }}
                           />
@@ -282,7 +297,7 @@ const Inventory = () => {
                               onClick={() => handleOpenAdjustModal(product)}
                               sx={{ borderRadius: 2 }}
                             >
-                              Adjust Stock
+                              Adjust
                             </Button>
                             <IconButton onClick={() => handleDeleteProduct(product.id)} color="error" size="small">
                               <DeleteIcon />
@@ -294,7 +309,7 @@ const Inventory = () => {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                       No soap products registered.
                     </TableCell>
                   </TableRow>
@@ -403,6 +418,16 @@ const Inventory = () => {
                 <MenuItem value="liters">Liters (L)</MenuItem>
                 <MenuItem value="pcs">Pieces (pcs)</MenuItem>
               </TextField>
+              <TextField
+                required
+                fullWidth
+                type="number"
+                label="Minimum Stock Threshold (Min)"
+                value={newMinStock}
+                onChange={(e) => setNewMinStock(e.target.value)}
+                placeholder="20"
+                inputProps={{ min: "0" }}
+              />
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 2.5 }}>
@@ -441,6 +466,16 @@ const Inventory = () => {
                 placeholder="Use positive for additions, negative for deductions"
                 helperText="Example: '+10' to restock 10 units, '-5' to consume 5 units"
                 inputProps={{ step: "0.01" }}
+              />
+              <TextField
+                required
+                fullWidth
+                type="number"
+                label="Minimum Stock Threshold (Min)"
+                value={adjustMinStock}
+                onChange={(e) => setAdjustMinStock(e.target.value)}
+                placeholder="20"
+                inputProps={{ min: "0" }}
               />
               <TextField
                 fullWidth

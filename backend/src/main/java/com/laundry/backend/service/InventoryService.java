@@ -44,6 +44,8 @@ public class InventoryService {
                 .name(request.getName())
                 .quantity(request.getQuantity())
                 .unit(request.getUnit())
+                .minStock(request.getMinStock() != null ? request.getMinStock() : 20.0)
+                .initialStock(request.getQuantity())
                 .build();
 
         SoapProduct savedProduct = soapProductRepository.save(product);
@@ -65,8 +67,11 @@ public class InventoryService {
     }
 
     @Transactional
-    public SoapProduct adjustStock(Long id, Double quantityChanged, String transactionType, String notes, User performer) {
+    public SoapProduct adjustStock(Long id, Double quantityChanged, Double newMinStock, String transactionType, String notes, User performer) {
         SoapProduct product = getProductById(id);
+        if (newMinStock != null) {
+            product.setMinStock(newMinStock);
+        }
         double oldQuantity = product.getQuantity();
         double newQuantity = oldQuantity + quantityChanged;
 
@@ -91,6 +96,11 @@ public class InventoryService {
         soapInventoryHistoryRepository.save(history);
 
         return updatedProduct;
+    }
+
+    @Transactional
+    public SoapProduct adjustStock(Long id, Double quantityChanged, String transactionType, String notes, User performer) {
+        return adjustStock(id, quantityChanged, null, transactionType, notes, performer);
     }
 
     public List<SoapInventoryHistory> getInventoryHistory() {

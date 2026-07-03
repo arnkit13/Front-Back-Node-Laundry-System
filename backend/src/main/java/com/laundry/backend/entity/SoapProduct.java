@@ -15,10 +15,16 @@ public class SoapProduct {
     private String name;
 
     @Column(nullable = false)
-    private Double quantity; // current stock level
+    private Double quantity; // current stock level (Available)
 
     @Column(nullable = false, length = 20)
-    private String unit; // 'kg', 'liters', etc.
+    private String unit; // 'pc', 'kg', 'liters', etc.
+
+    @Column(nullable = true)
+    private Double minStock = 20.0; // Min stock threshold
+
+    @Column(nullable = true)
+    private Double initialStock = 0.0; // Initial stock level at registration
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -39,11 +45,13 @@ public class SoapProduct {
 
     public SoapProduct() {}
 
-    public SoapProduct(Long id, String name, Double quantity, String unit, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public SoapProduct(Long id, String name, Double quantity, String unit, Double minStock, Double initialStock, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.quantity = quantity;
         this.unit = unit;
+        this.minStock = minStock != null ? minStock : 20.0;
+        this.initialStock = initialStock != null ? initialStock : (quantity != null ? quantity : 0.0);
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -61,6 +69,22 @@ public class SoapProduct {
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
 
+    public Double getMinStock() {
+        return minStock != null ? minStock : 20.0;
+    }
+
+    public void setMinStock(Double minStock) {
+        this.minStock = minStock;
+    }
+
+    public Double getInitialStock() {
+        return initialStock != null ? initialStock : (quantity != null ? quantity : 0.0);
+    }
+
+    public void setInitialStock(Double initialStock) {
+        this.initialStock = initialStock;
+    }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -77,6 +101,8 @@ public class SoapProduct {
         private String name;
         private Double quantity;
         private String unit;
+        private Double minStock;
+        private Double initialStock;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
@@ -84,11 +110,13 @@ public class SoapProduct {
         public SoapProductBuilder name(String name) { this.name = name; return this; }
         public SoapProductBuilder quantity(Double quantity) { this.quantity = quantity; return this; }
         public SoapProductBuilder unit(String unit) { this.unit = unit; return this; }
+        public SoapProductBuilder minStock(Double minStock) { this.minStock = minStock; return this; }
+        public SoapProductBuilder initialStock(Double initialStock) { this.initialStock = initialStock; return this; }
         public SoapProductBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public SoapProductBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public SoapProduct build() {
-            return new SoapProduct(id, name, quantity, unit, createdAt, updatedAt);
+            return new SoapProduct(id, name, quantity, unit, minStock, initialStock, createdAt, updatedAt);
         }
     }
 }

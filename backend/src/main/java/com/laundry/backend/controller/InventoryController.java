@@ -54,12 +54,16 @@ public class InventoryController {
             @RequestBody Map<String, Object> body) {
         
         Double qty = Double.valueOf(body.get("quantityChanged").toString());
+        Double minStock = body.containsKey("minStock") && body.get("minStock") != null 
+                ? Double.valueOf(body.get("minStock").toString()) 
+                : null;
         String notes = body.getOrDefault("notes", "Manual stock adjustment").toString();
         User performer = getAuthenticatedUser();
 
         SoapProduct updatedProduct = inventoryService.adjustStock(
                 id, 
                 qty, 
+                minStock,
                 "ADJUST_STOCK", 
                 notes, 
                 performer

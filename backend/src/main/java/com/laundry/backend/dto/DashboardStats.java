@@ -12,6 +12,13 @@ public class DashboardStats {
     private double totalExpenses;
     private double netProfit;
     private List<MonthlyFinancialPoint> monthlyFinancials;
+    
+    private List<BreakdownItem> expenseCategoryBreakdown;
+    private List<BreakdownItem> incomeServiceBreakdown;
+    private List<BreakdownItem> mopBreakdown;
+    private List<BreakdownItem> incomeByDate;
+    private List<BreakdownItem> expenseByCategory;
+    private List<BreakdownItem> incomeByService;
 
     public DashboardStats() {}
 
@@ -51,6 +58,42 @@ public class DashboardStats {
     public List<MonthlyFinancialPoint> getMonthlyFinancials() { return monthlyFinancials; }
     public void setMonthlyFinancials(List<MonthlyFinancialPoint> monthlyFinancials) { this.monthlyFinancials = monthlyFinancials; }
 
+    public List<BreakdownItem> getExpenseCategoryBreakdown() { return expenseCategoryBreakdown; }
+    public void setExpenseCategoryBreakdown(List<BreakdownItem> expenseCategoryBreakdown) { this.expenseCategoryBreakdown = expenseCategoryBreakdown; }
+
+    public List<BreakdownItem> getIncomeServiceBreakdown() { return incomeServiceBreakdown; }
+    public void setIncomeServiceBreakdown(List<BreakdownItem> incomeServiceBreakdown) { this.incomeServiceBreakdown = incomeServiceBreakdown; }
+
+    public List<BreakdownItem> getMopBreakdown() { return mopBreakdown; }
+    public void setMopBreakdown(List<BreakdownItem> mopBreakdown) { this.mopBreakdown = mopBreakdown; }
+
+    public List<BreakdownItem> getIncomeByDate() { return incomeByDate; }
+    public void setIncomeByDate(List<BreakdownItem> incomeByDate) { this.incomeByDate = incomeByDate; }
+
+    public List<BreakdownItem> getExpenseByCategory() { return expenseByCategory; }
+    public void setExpenseByCategory(List<BreakdownItem> expenseByCategory) { this.expenseByCategory = expenseByCategory; }
+
+    public List<BreakdownItem> getIncomeByService() { return incomeByService; }
+    public void setIncomeByService(List<BreakdownItem> incomeByService) { this.incomeByService = incomeByService; }
+
+    public static class BreakdownItem {
+        private String name;
+        private Double value;
+
+        public BreakdownItem() {}
+
+        public BreakdownItem(String name, Double value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+
+        public Double getValue() { return value; }
+        public void setValue(Double value) { this.value = value; }
+    }
+
     public static class MonthlyFinancialPoint {
         private String month;
         private Double revenue;
@@ -79,16 +122,20 @@ public class DashboardStats {
         private String name;
         private Double currentStock;
         private String unit;
-        private boolean isLow; // true if currentStock is below threshold (e.g., 5.0)
+        private boolean isLow;
+        private Double minStock;
+        private Double initialStock;
 
         public SoapStockStatus() {}
 
-        public SoapStockStatus(Long id, String name, Double currentStock, String unit, boolean isLow) {
+        public SoapStockStatus(Long id, String name, Double currentStock, String unit, boolean isLow, Double minStock, Double initialStock) {
             this.id = id;
             this.name = name;
             this.currentStock = currentStock;
             this.unit = unit;
             this.isLow = isLow;
+            this.minStock = minStock;
+            this.initialStock = initialStock;
         }
 
         public Long getId() { return id; }
@@ -105,5 +152,11 @@ public class DashboardStats {
 
         public boolean isLow() { return isLow; }
         public void setLow(boolean low) { isLow = low; }
+
+        public Double getMinStock() { return minStock; }
+        public void setMinStock(Double minStock) { this.minStock = minStock; }
+
+        public Double getInitialStock() { return initialStock; }
+        public void setInitialStock(Double initialStock) { this.initialStock = initialStock; }
     }
 }

@@ -16,7 +16,9 @@ public class DashboardController {
     private DashboardService dashboardService;
 
     @GetMapping("/stats")
-    public ResponseEntity<DashboardStats> getStats() {
-        return ResponseEntity.ok(dashboardService.getStats());
+    public ResponseEntity<DashboardStats> getStats(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Integer year,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Integer month) {
+        return ResponseEntity.ok(dashboardService.getStats(year, month));
     }
 }

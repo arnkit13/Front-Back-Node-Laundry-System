@@ -19,5 +19,6 @@ public interface TransactionRepository extends JpaRepository<LaundryTransaction,
     boolean existsByUser(User user);
     List<LaundryTransaction> findByBranch(Branch branch);
     boolean existsBySoapProduct(SoapProduct soapProduct);
+    List<LaundryTransaction> findBySoapProduct(SoapProduct soapProduct);
 }
 
