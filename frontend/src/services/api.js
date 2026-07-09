@@ -3,7 +3,7 @@ import axios from 'axios';
 // Toggle this flag to switch between mock client-side database and Spring Boot backend
 const USE_MOCK = false;
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // Mock database seed structures
 const SEED_BRANCHES = [
