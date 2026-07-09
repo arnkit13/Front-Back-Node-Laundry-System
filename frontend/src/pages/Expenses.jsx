@@ -132,8 +132,8 @@ const Expenses = () => {
       setFormError('Please select or specify a category.');
       return;
     }
-    if (!amount || parseFloat(amount) <= 0) {
-      setFormError('Amount must be greater than 0.');
+    if (amount === '' || parseFloat(amount) < 0) {
+      setFormError('Amount must be greater than or equal to 0.');
       return;
     }
     if (!date) {
@@ -333,7 +333,7 @@ const Expenses = () => {
                 placeholder="0.00"
                 InputProps={{
                   startAdornment: <InputAdornment position="start">₱</InputAdornment>,
-                  inputProps: { min: "0.01", step: "0.01" }
+                  inputProps: { min: "0.00", step: "0.01" }
                 }}
               />
 

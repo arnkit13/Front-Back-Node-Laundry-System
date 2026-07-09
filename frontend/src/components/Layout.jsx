@@ -259,6 +259,7 @@ const Layout = () => {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${currentDrawerWidth}px)` },
+          overflowX: 'hidden',
           mt: 8,
           minHeight: 'calc(100vh - 64px)',
         }}

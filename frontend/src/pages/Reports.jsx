@@ -165,8 +165,8 @@ const Reports = () => {
             label="Filter by Branch"
             value={selectedBranchId}
             onChange={handleBranchChange}
-            InputProps={{
-              startAdornment: <BranchIcon color="action" sx={{ mr: 1 }} />
+            SelectProps={{
+              startAdornment: <BranchIcon color="action" sx={{ mr: 1, ml: 0.5 }} />
             }}
           >
             <MenuItem value="">All Branches</MenuItem>

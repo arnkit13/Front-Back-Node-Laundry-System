@@ -24,9 +24,62 @@ public class ExpenseController {
     @Autowired
     private BranchRepository branchRepository;
 
+    private static java.time.LocalDate lastInitDate = null;
+
     @GetMapping
     public ResponseEntity<List<Expense>> getAllExpenses() {
-        return ResponseEntity.ok(expenseRepository.findAll());
+        java.time.LocalDate today = java.time.LocalDate.now();
+        List<Expense> allExpenses = expenseRepository.findAll();
+
+        boolean alreadyInitialized = (lastInitDate != null && lastInitDate.equals(today));
+        if (!alreadyInitialized) {
+            boolean hasTodayPlaceholder = allExpenses.stream()
+                    .anyMatch(e -> e.getDate() != null && e.getDate().equals(today)
+                            && e.getAmount() != null && Math.abs(e.getAmount()) < 0.001);
+            if (hasTodayPlaceholder) {
+                lastInitDate = today;
+                alreadyInitialized = true;
+            }
+        }
+
+        if (!alreadyInitialized) {
+            List<String> categories = java.util.Arrays.asList(
+                    "Utilities", "Payroll", "Detergent", "Maintenance", "Fabric conditioner",
+                    "xonrox", "tape", "cellophane", "GASOL", "SALARY", "ELECTRIC BILL", "WATER BILL"
+            );
+            boolean updated = false;
+            for (String category : categories) {
+                Expense zeroExpense = allExpenses.stream()
+                        .filter(e -> e.getCategory() != null && e.getCategory().equalsIgnoreCase(category)
+                                && e.getAmount() != null && Math.abs(e.getAmount()) < 0.001)
+                        .findFirst()
+                        .orElse(null);
+
+                if (zeroExpense != null) {
+                    if (!zeroExpense.getDate().equals(today)) {
+                        zeroExpense.setDate(today);
+                        expenseRepository.save(zeroExpense);
+                        updated = true;
+                    }
+                } else {
+                    Expense newZeroExpense = new Expense();
+                    newZeroExpense.setCategory(category);
+                    newZeroExpense.setAmount(0.0);
+                    newZeroExpense.setDate(today);
+                    newZeroExpense.setDescription("Auto-generated placeholder");
+                    expenseRepository.save(newZeroExpense);
+                    updated = true;
+                }
+            }
+
+            lastInitDate = today;
+
+            if (updated) {
+                allExpenses = expenseRepository.findAll();
+            }
+        }
+
+        return ResponseEntity.ok(allExpenses);
     }
 
     @PostMapping
