@@ -617,13 +617,19 @@ const handleMockRequest = async (method, url, data) => {
           totalKgWashed: 0,
           totalSoapUsed: 0,
           machineUsage: {},
-          branchUsage: {}
+          branchUsage: {},
+          customerNames: new Set(),
+          totalRevenue: 0
         };
       }
 
       groupings[period].transactionCount += 1;
       groupings[period].totalKgWashed += (t.weightKg || 0);
       groupings[period].totalSoapUsed += (t.soapUsedQty || 0);
+      groupings[period].totalRevenue += (t.totalAmount || 0);
+      if (t.customerName && t.customerName.trim()) {
+        groupings[period].customerNames.add(t.customerName.trim());
+      }
 
       if (t.machineNumber) {
         groupings[period].machineUsage[t.machineNumber] = (groupings[period].machineUsage[t.machineNumber] || 0) + 1;
@@ -633,7 +639,13 @@ const handleMockRequest = async (method, url, data) => {
       }
     });
 
-    const reportData = Object.values(groupings);
+    const reportData = Object.values(groupings).map(g => {
+      const { customerNames, ...rest } = g;
+      return {
+        ...rest,
+        customerCount: customerNames.size || g.transactionCount
+      };
+    });
     reportData.sort((a, b) => b.period.localeCompare(a.period));
 
     return resolve(reportData);

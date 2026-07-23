@@ -9,17 +9,21 @@ public class ReportSummary {
     private double totalSoapUsed;
     private Map<String, Long> machineUsage; // machineNumber -> count
     private Map<String, Long> branchUsage;  // branchName -> count
+    private long customerCount;
+    private double totalRevenue;
 
     public ReportSummary() {}
 
     public ReportSummary(String period, long transactionCount, double totalKgWashed, double totalSoapUsed, 
-                         Map<String, Long> machineUsage, Map<String, Long> branchUsage) {
+                         Map<String, Long> machineUsage, Map<String, Long> branchUsage, long customerCount, double totalRevenue) {
         this.period = period;
         this.transactionCount = transactionCount;
         this.totalKgWashed = totalKgWashed;
         this.totalSoapUsed = totalSoapUsed;
         this.machineUsage = machineUsage;
         this.branchUsage = branchUsage;
+        this.customerCount = customerCount;
+        this.totalRevenue = totalRevenue;
     }
 
     public String getPeriod() { return period; }
@@ -39,4 +43,10 @@ public class ReportSummary {
 
     public Map<String, Long> getBranchUsage() { return branchUsage; }
     public void setBranchUsage(Map<String, Long> branchUsage) { this.branchUsage = branchUsage; }
+
+    public long getCustomerCount() { return customerCount; }
+    public void setCustomerCount(long customerCount) { this.customerCount = customerCount; }
+
+    public double getTotalRevenue() { return totalRevenue; }
+    public void setTotalRevenue(double totalRevenue) { this.totalRevenue = totalRevenue; }
 }

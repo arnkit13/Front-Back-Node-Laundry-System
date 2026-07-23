@@ -50,6 +50,20 @@ public class ReportService {
                     double totalKg = list.stream().mapToDouble(LaundryTransaction::getWeightKg).sum();
                     double totalSoap = list.stream().mapToDouble(LaundryTransaction::getSoapUsedQty).sum();
 
+                    long customerCount = list.stream()
+                            .map(LaundryTransaction::getCustomerName)
+                            .filter(name -> name != null && !name.trim().isEmpty())
+                            .map(String::trim)
+                            .distinct()
+                            .count();
+                    if (customerCount == 0) {
+                        customerCount = list.size();
+                    }
+
+                    double totalRevenue = list.stream()
+                            .mapToDouble(t -> t.getTotalAmount() != null ? t.getTotalAmount() : 0.0)
+                            .sum();
+
                     Map<String, Long> machineUsage = list.stream()
                             .filter(t -> t.getMachineNumber() != null && !t.getMachineNumber().isBlank())
                             .collect(Collectors.groupingBy(LaundryTransaction::getMachineNumber, Collectors.counting()));
@@ -64,7 +78,9 @@ public class ReportService {
                             totalKg,
                             totalSoap,
                             machineUsage,
-                            branchUsage
+                            branchUsage,
+                            customerCount,
+                            totalRevenue
                     );
                 })
                 .collect(Collectors.toList());
@@ -92,6 +108,20 @@ public class ReportService {
                     double totalKg = list.stream().mapToDouble(LaundryTransaction::getWeightKg).sum();
                     double totalSoap = list.stream().mapToDouble(LaundryTransaction::getSoapUsedQty).sum();
 
+                    long customerCount = list.stream()
+                            .map(LaundryTransaction::getCustomerName)
+                            .filter(name -> name != null && !name.trim().isEmpty())
+                            .map(String::trim)
+                            .distinct()
+                            .count();
+                    if (customerCount == 0) {
+                        customerCount = list.size();
+                    }
+
+                    double totalRevenue = list.stream()
+                            .mapToDouble(t -> t.getTotalAmount() != null ? t.getTotalAmount() : 0.0)
+                            .sum();
+
                     Map<String, Long> machineUsage = list.stream()
                             .filter(t -> t.getMachineNumber() != null && !t.getMachineNumber().isBlank())
                             .collect(Collectors.groupingBy(LaundryTransaction::getMachineNumber, Collectors.counting()));
@@ -106,7 +136,9 @@ public class ReportService {
                             totalKg,
                             totalSoap,
                             machineUsage,
-                            branchUsage
+                            branchUsage,
+                            customerCount,
+                            totalRevenue
                     );
                 })
                 .collect(Collectors.toList());
@@ -135,6 +167,20 @@ public class ReportService {
                     double totalKg = list.stream().mapToDouble(LaundryTransaction::getWeightKg).sum();
                     double totalSoap = list.stream().mapToDouble(LaundryTransaction::getSoapUsedQty).sum();
 
+                    long customerCount = list.stream()
+                            .map(LaundryTransaction::getCustomerName)
+                            .filter(name -> name != null && !name.trim().isEmpty())
+                            .map(String::trim)
+                            .distinct()
+                            .count();
+                    if (customerCount == 0) {
+                        customerCount = list.size();
+                    }
+
+                    double totalRevenue = list.stream()
+                            .mapToDouble(t -> t.getTotalAmount() != null ? t.getTotalAmount() : 0.0)
+                            .sum();
+
                     Map<String, Long> machineUsage = list.stream()
                             .filter(t -> t.getMachineNumber() != null && !t.getMachineNumber().isBlank())
                             .collect(Collectors.groupingBy(LaundryTransaction::getMachineNumber, Collectors.counting()));
@@ -149,7 +195,9 @@ public class ReportService {
                             totalKg,
                             totalSoap,
                             machineUsage,
-                            branchUsage
+                            branchUsage,
+                            customerCount,
+                            totalRevenue
                     );
                 })
                 .collect(Collectors.toList());

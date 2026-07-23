@@ -29,6 +29,8 @@ import {
   Scale as ScaleIcon,
   Science as SoapIcon,
   Store as BranchIcon,
+  Paid as RevenueIcon,
+  People as CustomersIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -112,12 +114,14 @@ const Reports = () => {
   // Compute overall aggregate summaries for cards based on active dataset
   const getAggregates = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
-      return { totalWashes: 0, totalKg: 0, totalSoap: 0 };
+      return { totalWashes: 0, totalKg: 0, totalSoap: 0, totalRevenue: 0, totalCustomers: 0 };
     }
     const totalWashes = reportData.reduce((acc, curr) => acc + (curr?.transactionCount || 0), 0);
     const totalKg = reportData.reduce((acc, curr) => acc + (curr?.totalKgWashed || 0), 0);
     const totalSoap = reportData.reduce((acc, curr) => acc + (curr?.totalSoapUsed || 0), 0);
-    return { totalWashes, totalKg, totalSoap };
+    const totalRevenue = reportData.reduce((acc, curr) => acc + (curr?.totalRevenue || 0), 0);
+    const totalCustomers = reportData.reduce((acc, curr) => acc + (curr?.customerCount || 0), 0);
+    return { totalWashes, totalKg, totalSoap, totalRevenue, totalCustomers };
   };
 
   // Compute aggregated machine usage details across reports
@@ -149,7 +153,7 @@ const Reports = () => {
     <Box sx={{ flexGrow: 1 }}>
       {/* Header with branch filter */}
       <Grid container spacing={2} sx={{ mb: 3 }} alignItems="center" justifyContent="space-between">
-        <Grid item xs={12} md={7}>
+        <Grid item xs={12} md={6}>
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
             Laundry Activities & Consumption Reports
           </Typography>
@@ -157,23 +161,46 @@ const Reports = () => {
             Track business growth, wash volume metrics, and soap inventory consumption rates.
           </Typography>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Filter by Branch"
-            value={selectedBranchId}
-            onChange={handleBranchChange}
-            SelectProps={{
-              startAdornment: <BranchIcon color="action" sx={{ mr: 1, ml: 0.5 }} />
-            }}
-          >
-            <MenuItem value="">All Branches</MenuItem>
-            {Array.isArray(branches) && branches.map(b => (
-              <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
-            ))}
-          </TextField>
+        <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: { xs: 'flex-start', md: 'flex-end' }, alignItems: 'center' }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <BranchIcon fontSize="small" /> Branch:
+            </Typography>
+            <Chip
+              label="All Branches"
+              clickable
+              onClick={() => setSelectedBranchId('')}
+              color={selectedBranchId === '' ? 'primary' : 'default'}
+              variant={selectedBranchId === '' ? 'filled' : 'outlined'}
+              sx={{
+                fontWeight: 'bold',
+                fontSize: '0.8rem',
+                transition: 'all 0.2s ease',
+                boxShadow: selectedBranchId === '' ? '0px 4px 10px rgba(14, 165, 233, 0.25)' : 'none',
+                '&:hover': { transform: 'translateY(-1px)' }
+              }}
+            />
+            {Array.isArray(branches) && branches.map(b => {
+              const isSelected = selectedBranchId === String(b.id) || selectedBranchId === b.id;
+              return (
+                <Chip
+                  key={b.id}
+                  label={b.name}
+                  clickable
+                  onClick={() => setSelectedBranchId(b.id)}
+                  color={isSelected ? 'primary' : 'default'}
+                  variant={isSelected ? 'filled' : 'outlined'}
+                  sx={{
+                    fontWeight: 'bold',
+                    fontSize: '0.8rem',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isSelected ? '0px 4px 10px rgba(14, 165, 233, 0.25)' : 'none',
+                    '&:hover': { transform: 'translateY(-1px)' }
+                  }}
+                />
+              );
+            })}
+          </Box>
         </Grid>
       </Grid>
 
@@ -202,7 +229,7 @@ const Reports = () => {
         <Stack spacing={4}>
           {/* Aggregate Stats Cards */}
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4} lg={2.4}>
               <Card sx={{ borderTop: '4px solid', borderColor: 'primary.main' }}>
                 <CardContent sx={{ textAlign: 'center', p: 3 }}>
                   <Avatar sx={{ bgcolor: 'primary.light', mx: 'auto', mb: 1.5 }}>
@@ -215,13 +242,51 @@ const Reports = () => {
                     {aggregates.totalWashes}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Total washes completed in this range
+                    Total washes completed
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4} lg={2.4}>
+              <Card sx={{ borderTop: '4px solid', borderColor: 'info.main' }}>
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Avatar sx={{ bgcolor: 'info.light', mx: 'auto', mb: 1.5 }}>
+                    <CustomersIcon />
+                  </Avatar>
+                  <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                    Customers Served
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                    {aggregates.totalCustomers}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total unique customer count
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={4} lg={2.4}>
+              <Card sx={{ borderTop: '4px solid', borderColor: 'success.main' }}>
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Avatar sx={{ bgcolor: 'success.light', mx: 'auto', mb: 1.5 }}>
+                    <RevenueIcon />
+                  </Avatar>
+                  <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                    Revenue Made
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                    ₱{aggregates.totalRevenue.toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total amount made
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={6} lg={2.4}>
               <Card sx={{ borderTop: '4px solid', borderColor: 'secondary.main' }}>
                 <CardContent sx={{ textAlign: 'center', p: 3 }}>
                   <Avatar sx={{ bgcolor: 'secondary.light', mx: 'auto', mb: 1.5 }}>
@@ -234,13 +299,13 @@ const Reports = () => {
                     {aggregates.totalKg.toFixed(1)} kg
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Total kilograms washed in this range
+                    Total kilograms washed
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={6} lg={2.4}>
               <Card sx={{ borderTop: '4px solid', borderColor: 'warning.main' }}>
                 <CardContent sx={{ textAlign: 'center', p: 3 }}>
                   <Avatar sx={{ bgcolor: 'warning.light', mx: 'auto', mb: 1.5 }}>
@@ -253,7 +318,7 @@ const Reports = () => {
                     {aggregates.totalSoap.toFixed(2)} units
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Total chemical resources consumed
+                    Total chemical resources used
                   </Typography>
                 </CardContent>
               </Card>
@@ -340,6 +405,8 @@ const Reports = () => {
                   <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>Reporting Period</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Washes Completed</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Customers</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Revenue Made</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Total Weight Processed</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Total Soap Consumed</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Machine Counts Breakdown</TableCell>
@@ -351,6 +418,8 @@ const Reports = () => {
                       <TableRow key={row.period} hover>
                         <TableCell sx={{ fontWeight: 600 }}>{row.period}</TableCell>
                         <TableCell>{row.transactionCount}</TableCell>
+                        <TableCell>{row.customerCount}</TableCell>
+                        <TableCell>₱{row.totalRevenue ? row.totalRevenue.toFixed(2) : '0.00'}</TableCell>
                         <TableCell>{row.totalKgWashed.toFixed(2)} kg</TableCell>
                         <TableCell>{row.totalSoapUsed.toFixed(2)}</TableCell>
                         <TableCell>
@@ -373,7 +442,7 @@ const Reports = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                         No aggregated report records found.
                       </TableCell>
                     </TableRow>

@@ -74,8 +74,9 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
 
         // 1. Seed Users
-        if (userRepository.count() == 0) {
-            User admin = User.builder()
+        User admin = userRepository.findByUsername("admin").orElse(null);
+        if (admin == null) {
+            admin = User.builder()
                     .username("admin")
                     .password(passwordEncoder.encode("admin123"))
                     .fullName("Shop Manager (Admin)")
@@ -83,8 +84,18 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .active(true)
                     .branch(null)
                     .build();
+            userRepository.save(admin);
+            System.out.println("Default admin user seeded: 'admin' / 'admin123'");
+        } else {
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setActive(true);
+            userRepository.save(admin);
+            System.out.println("Default admin user password verified/reset to admin123.");
+        }
 
-            User employee = User.builder()
+        User employee = userRepository.findByUsername("employee").orElse(null);
+        if (employee == null) {
+            employee = User.builder()
                     .username("employee")
                     .password(passwordEncoder.encode("emp123"))
                     .fullName("Juan Dela Cruz (Employee)")
@@ -92,9 +103,13 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .active(true)
                     .branch(null)
                     .build();
-
-            userRepository.saveAll(Arrays.asList(admin, employee));
-            System.out.println("Default users seeded: 'admin' / 'admin123' and 'employee' / 'emp123'");
+            userRepository.save(employee);
+            System.out.println("Default employee user seeded: 'employee' / 'emp123'");
+        } else {
+            employee.setPassword(passwordEncoder.encode("emp123"));
+            employee.setActive(true);
+            userRepository.save(employee);
+            System.out.println("Default employee user password verified/reset to emp123.");
         }
 
         // 2. Seed Services
