@@ -42,6 +42,19 @@ public class BranchController {
         return ResponseEntity.ok(branchRepository.save(branch));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Branch> updateBranch(@PathVariable Long id, @Valid @RequestBody Branch updatedBranch) {
+        Branch existing = branchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch not found with id: " + id));
+        existing.setName(updatedBranch.getName());
+        existing.setLocation(updatedBranch.getLocation());
+        if (updatedBranch.getMachinesConfig() != null) {
+            existing.setMachinesConfig(updatedBranch.getMachinesConfig());
+        }
+        return ResponseEntity.ok(branchRepository.save(existing));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional

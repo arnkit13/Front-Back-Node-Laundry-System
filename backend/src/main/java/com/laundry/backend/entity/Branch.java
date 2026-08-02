@@ -17,6 +17,9 @@ public class Branch {
     @Column(nullable = false, length = 150)
     private String location;
 
+    @Column(nullable = false, length = 1000)
+    private String machinesConfig = "Machine 1:true,Machine 2:true,Machine 3:true,Machine 4:true";
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -65,6 +68,14 @@ public class Branch {
         this.createdAt = createdAt;
     }
 
+    public String getMachinesConfig() {
+        return machinesConfig;
+    }
+
+    public void setMachinesConfig(String machinesConfig) {
+        this.machinesConfig = machinesConfig;
+    }
+
     // Custom Builder
     public static BranchBuilder builder() {
         return new BranchBuilder();
@@ -74,6 +85,7 @@ public class Branch {
         private Long id;
         private String name;
         private String location;
+        private String machinesConfig = "Machine 1:true,Machine 2:true,Machine 3:true,Machine 4:true";
 
         public BranchBuilder id(Long id) {
             this.id = id;
@@ -90,8 +102,14 @@ public class Branch {
             return this;
         }
 
+        public BranchBuilder machinesConfig(String machinesConfig) {
+            this.machinesConfig = machinesConfig;
+            return this;
+        }
+
         public Branch build() {
             Branch branch = new Branch(id, name, location);
+            branch.setMachinesConfig(machinesConfig != null ? machinesConfig : "Machine 1:true,Machine 2:true,Machine 3:true,Machine 4:true");
             return branch;
         }
     }
