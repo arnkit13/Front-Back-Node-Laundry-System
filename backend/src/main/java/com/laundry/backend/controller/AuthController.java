@@ -44,4 +44,9 @@ public class AuthController {
                 userDetails.getBranchId()
         ));
     }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("OK");
+    }
 }
