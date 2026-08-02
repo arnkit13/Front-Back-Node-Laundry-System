@@ -59,6 +59,12 @@ public class LaundryTransaction {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private Boolean pickedUp = false;
+
+    @Column
+    private LocalDateTime pickedUpAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -134,6 +140,12 @@ public class LaundryTransaction {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public Boolean getPickedUp() { return pickedUp; }
+    public void setPickedUp(Boolean pickedUp) { this.pickedUp = pickedUp; }
+
+    public LocalDateTime getPickedUpAt() { return pickedUpAt; }
+    public void setPickedUpAt(LocalDateTime pickedUpAt) { this.pickedUpAt = pickedUpAt; }
+
     // Custom Builder
     public static LaundryTransactionBuilder builder() {
         return new LaundryTransactionBuilder();
@@ -155,6 +167,8 @@ public class LaundryTransaction {
         private Double totalAmount;
         private List<TransactionServiceItem> serviceItems = new ArrayList<>();
         private LocalDateTime createdAt;
+        private Boolean pickedUp = false;
+        private LocalDateTime pickedUpAt;
 
         public LaundryTransactionBuilder id(Long id) { this.id = id; return this; }
         public LaundryTransactionBuilder date(LocalDate date) { this.date = date; return this; }
@@ -171,9 +185,14 @@ public class LaundryTransaction {
         public LaundryTransactionBuilder totalAmount(Double totalAmount) { this.totalAmount = totalAmount; return this; }
         public LaundryTransactionBuilder serviceItems(List<TransactionServiceItem> serviceItems) { this.serviceItems = serviceItems; return this; }
         public LaundryTransactionBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public LaundryTransactionBuilder pickedUp(Boolean pickedUp) { this.pickedUp = pickedUp; return this; }
+        public LaundryTransactionBuilder pickedUpAt(LocalDateTime pickedUpAt) { this.pickedUpAt = pickedUpAt; return this; }
 
         public LaundryTransaction build() {
-            return new LaundryTransaction(id, date, customerName, weightKg, soapProduct, soapUsedQty, soapRemainingQty, user, machineNumber, branch, paymentMethod, referenceNumber, totalAmount, serviceItems, createdAt);
+            LaundryTransaction transaction = new LaundryTransaction(id, date, customerName, weightKg, soapProduct, soapUsedQty, soapRemainingQty, user, machineNumber, branch, paymentMethod, referenceNumber, totalAmount, serviceItems, createdAt);
+            transaction.setPickedUp(pickedUp != null ? pickedUp : false);
+            transaction.setPickedUpAt(pickedUpAt);
+            return transaction;
         }
     }
 }

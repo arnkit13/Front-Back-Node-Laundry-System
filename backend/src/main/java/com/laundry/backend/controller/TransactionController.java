@@ -42,4 +42,9 @@ public class TransactionController {
         User performer = getAuthenticatedUser();
         return ResponseEntity.ok(transactionService.createTransaction(request, performer));
     }
+
+    @PutMapping("/{id}/pickup")
+    public ResponseEntity<LaundryTransaction> markAsPickedUp(@PathVariable Long id) {
+        return ResponseEntity.ok(transactionService.markAsPickedUp(id));
+    }
 }

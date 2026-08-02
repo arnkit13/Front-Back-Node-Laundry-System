@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -103,6 +104,15 @@ public class TransactionService {
         transaction.setTotalAmount(totalAmount);
         transaction.setServiceItems(serviceItems);
 
+        return transactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public LaundryTransaction markAsPickedUp(Long id) {
+        LaundryTransaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transaction not found with ID: " + id));
+        transaction.setPickedUp(true);
+        transaction.setPickedUpAt(LocalDateTime.now());
         return transactionRepository.save(transaction);
     }
 }
