@@ -39,3 +39,7 @@ build/
 .env.production
 .env.staging
 
+# Node dependencies
+node_modules/
+npm-debug.log
+

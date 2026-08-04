@@ -1,16 +1,19 @@
-# Stage 1: Build the application
-FROM maven:3-eclipse-temurin-21 AS build
-WORKDIR /app
-COPY pom.xml .
-# Download dependencies first to cache this layer
-RUN mvn dependency:go-offline -B
-COPY src ./src
-RUN mvn clean package -DskipTests
+# Use Node.js base image
+FROM node:24-alpine
 
-# Stage 2: Run the application
-FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+
+# Copy dependency files
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm ci --omit=dev
+
+# Copy all application code
+COPY . .
+
+# Expose server port (Vite/render defaults)
 EXPOSE 8080
-# Render binds dynamically to PORT env
-ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT:-8080}"]
+
+# Run Express server
+CMD ["node", "server.js"]
