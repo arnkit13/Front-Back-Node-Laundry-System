@@ -242,14 +242,14 @@ const AdminDashboard = () => {
       )}
 
       {/* Two Column Compact Layout */}
-      <Grid container spacing={2}>
+      <Grid container spacing={2} sx={{ width: '100%', m: 0 }}>
         {/* Left Column: Metrics & Charts */}
         <Grid item xs={12} lg={8}>
           <Stack spacing={2}>
             
             {/* CASHFLOW METRIC CARDS - Rendered on a single row (xs={4}) */}
             <Box>
-              <Grid container spacing={2}>
+              <Grid container spacing={2} sx={{ width: '100%', m: 0 }}>
                 {/* INCOME */}
                 <Grid item xs={4}>
                   <Card
@@ -316,7 +316,7 @@ const AdminDashboard = () => {
             </Box>
 
             {/* CHARTS CONTAINER GRID - Side-by-side, enlarged to 180px */}
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ width: '100%', m: 0 }}>
               {/* EXPENSES DONUT CHART */}
               <Grid item xs={6}>
                 <Card sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
@@ -324,7 +324,7 @@ const AdminDashboard = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY EXPENSES
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 260, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.expenseCategoryBreakdown && stats.expenseCategoryBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -333,8 +333,8 @@ const AdminDashboard = () => {
                                 data={stats.expenseCategoryBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={65}
-                                outerRadius={85}
+                                innerRadius={70}
+                                outerRadius={95}
                                 paddingAngle={2}
                                 dataKey="value"
                               >
@@ -346,8 +346,8 @@ const AdminDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.1rem' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.25rem' }}>
                               {formatCurrency(stats.totalExpenses)}
                             </Typography>
                           </Box>
@@ -360,7 +360,7 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list - Compact with scroll bar */}
-                    <Box sx={{ mt: 1.5, maxHeight: 130, overflowY: 'auto', pr: 0.5 }}>
+                    <Box sx={{ mt: 1.5, maxHeight: 140, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.expenseCategoryBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -384,7 +384,7 @@ const AdminDashboard = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY INCOME BY SERVICE
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 260, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.incomeServiceBreakdown && stats.incomeServiceBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -393,8 +393,8 @@ const AdminDashboard = () => {
                                 data={stats.incomeServiceBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={65}
-                                outerRadius={85}
+                                innerRadius={70}
+                                outerRadius={95}
                                 paddingAngle={2}
                                 dataKey="value"
                               >
@@ -406,8 +406,8 @@ const AdminDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.1rem' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.25rem' }}>
                               {formatCurrency(stats.totalRevenue)}
                             </Typography>
                           </Box>
@@ -420,7 +420,7 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list - Compact with scroll bar */}
-                    <Box sx={{ mt: 1.5, maxHeight: 130, overflowY: 'auto', pr: 0.5 }}>
+                    <Box sx={{ mt: 1.5, maxHeight: 140, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.incomeServiceBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -457,7 +457,7 @@ const AdminDashboard = () => {
                 <Tab label="By Service" />
               </Tabs>
 
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 420 }}>
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 450 }}>
                 {tableTab === 0 && (
                   <TableContainer>
                     <Table stickyHeader size="small">
