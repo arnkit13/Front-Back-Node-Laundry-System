@@ -519,36 +519,12 @@ const EmployeeDashboard = () => {
                       <Stack spacing={2} sx={{ alignItems: 'center' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'flex', alignItems: 'center', gap: 1 }}>
                           <CheckIcon color="primary" />
-                          Scan & Pay GCash QR
+                          GCash Payment Details
                         </Typography>
-                        
-                        <Box
-                          component="img"
-                          src="/qr/qrcode.jpg"
-                          alt="GCash QR Code"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            if (!e.target.parentNode.querySelector('.qr-error-msg')) {
-                              e.target.parentNode.innerHTML += `
-                                <div class="qr-error-msg" style="border: 2px dashed #90caf9; padding: 15px; border-radius: 8px; background: #fff; color: #1565c0; font-size: 0.8rem; text-align: center;">
-                                  <b>qrcode.jpg</b> not found.<br/>
-                                  Place QR image in <b>public/qr/qrcode.jpg</b>
-                                </div>
-                              `;
-                            }
-                          }}
-                          sx={{
-                            width: 180,
-                            height: 180,
-                            borderRadius: 2,
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                            border: '2px solid white',
-                          }}
-                        />
                         
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                            GCash Account: 0976 406 0979
+                            GCash Account: 000
                           </Typography>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                             Once paid, key in the GCash Reference Number below:

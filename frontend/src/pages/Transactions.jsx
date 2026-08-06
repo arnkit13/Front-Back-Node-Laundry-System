@@ -795,43 +795,14 @@ const Transactions = () => {
               {paymentMethod === 'Gcash' && (
                 <Stack spacing={2} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.default' }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main', textAlign: 'center' }}>
-                    GCash QR Payment Verification
+                    GCash Payment Verification
                   </Typography>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Box
-                      component="img"
-                      src="/qr/qrcode.jpg"
-                      alt="GCash QR Code"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        if (!e.target.parentNode.querySelector('.qr-error-msg')) {
-                          e.target.parentNode.innerHTML += `
-                            <div class="qr-error-msg" style="border: 2px dashed #ff8a80; padding: 20px; border-radius: 8px; background: #ffebee; color: #c62828; font-size: 0.85rem; margin-bottom: 10px;">
-                              <b>qrcode.jpg</b> not found.<br/>
-                              Please copy your QR image into the <b>frontend/public/qr/</b> folder and name it <b>qrcode.jpg</b>.
-                            </div>
-                          `;
-                        }
-                      }}
-                      sx={{
-                        maxWidth: '100%',
-                        height: 'auto',
-                        maxHeight: 350,
-                        width: 280,
-                        borderRadius: 2,
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        display: 'block',
-                        mx: 'auto',
-                        mb: 1.5
-                      }}
-                    />
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                      GCash Number: 09764060979
+                      GCash Number: 000
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      Scan the QR code above or send payment directly to the GCash number.
+                      Send payment directly to the GCash number.
                     </Typography>
                   </Box>
                   <TextField
@@ -842,7 +813,7 @@ const Transactions = () => {
                     value={referenceNumber}
                     onChange={(e) => setReferenceNumber(e.target.value)}
                     inputProps={{ maxLength: 4 }}
-                    helperText="Please scan the QR code above and input the last 4 digits of the receipt reference."
+                    helperText="Please input the last 4 digits of the receipt reference."
                   />
                 </Stack>
               )}
