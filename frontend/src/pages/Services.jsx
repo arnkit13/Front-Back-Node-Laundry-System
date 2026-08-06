@@ -8,13 +8,6 @@ import {
   Typography,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -23,11 +16,12 @@ import {
   IconButton,
   Stack,
   CircularProgress,
+  Fab,
+  Grid,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Refresh as RefreshIcon,
-  LocalLaundryService as LaundryIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
 } from '@mui/icons-material';
@@ -76,7 +70,7 @@ const Services = () => {
     setSelectedServiceId(null);
     setServiceName('');
     setRate('');
-    setUnit('LOAD');
+    setUnit('service');
     setFormError('');
     setOpenModal(true);
   };
@@ -115,7 +109,7 @@ const Services = () => {
       const payload = {
         name: serviceName.trim(),
         rate: rateVal,
-        unit: unit.trim()
+        unit: unit.trim().toLowerCase()
       };
 
       if (editMode) {
@@ -145,105 +139,117 @@ const Services = () => {
     }
   };
 
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val || 0);
+  };
+
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, pb: 8, position: 'relative' }}>
       {/* Header bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-            Laundry Services & Pricing Rates
+          <Typography variant="h5" sx={{ fontWeight: 'extraBold', color: 'primary.dark' }}>
+            Services & Rates
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Manage services configurations, standard rates, and billing units.
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box>
           <IconButton onClick={loadData} color="primary" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
             <RefreshIcon />
           </IconButton>
-          {isAdmin() && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenAddModal}
-              sx={{ fontWeight: 'bold' }}
-            >
-              Add New Service
-            </Button>
-          )}
         </Box>
       </Box>
 
+      {/* Role Banner */}
+      <Alert severity="success" sx={{ mb: 3, borderRadius: 3, border: '1px solid #c8e6c9', bgcolor: '#e8f5e9', color: '#2e7d32' }}>
+        Welcome back, Shop Manager (Admin)!
+      </Alert>
+
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {/* Services Table Card */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 0 }}>
-              <Table>
-                <TableHead sx={{ bgcolor: 'background.default' }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Service Name / Description</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Standard Rate</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Billing Unit</TableCell>
-                    {isAdmin() && <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {services.length > 0 ? (
-                    services.map((item) => (
-                      <TableRow key={item.id} hover>
-                        <TableCell>#{item.id}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, py: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <LaundryIcon color="primary" />
-                            {item.name}
-                          </Box>
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                          ₱{item.rate != null && !isNaN(Number(item.rate)) ? Number(item.rate).toFixed(2) : '0.00'}
-                        </TableCell>
-                        <TableCell>
-                          {item.unit}
-                        </TableCell>
-                        {isAdmin() && (
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
-                              <IconButton onClick={() => handleOpenEditModal(item)} color="primary" size="small">
-                                <EditIcon />
-                              </IconButton>
-                              <IconButton onClick={() => handleDeleteService(item.id, item.name)} color="error" size="small">
-                                <DeleteIcon />
-                              </IconButton>
-                            </Stack>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={isAdmin() ? 5 : 4} align="center" sx={{ py: 6 }}>
-                        <Typography color="text.secondary">No services defined yet.</Typography>
-                      </TableCell>
-                    </TableRow>
+      {/* Services List of Cards */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : services.length > 0 ? (
+        <Grid container spacing={2}>
+          {services.map((item) => (
+            <Grid item xs={12} key={item.id}>
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  p: 1.5,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                {/* Left side details */}
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                    {item.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Rate Unit: {item.unit}
+                  </Typography>
+                </Box>
+
+                {/* Right side rate and actions */}
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'extraBold', color: 'secondary.dark' }}>
+                    {formatCurrency(item.rate)}
+                  </Typography>
+                  {isAdmin() && (
+                    <Stack direction="row" spacing={0.5}>
+                      <IconButton onClick={() => handleOpenEditModal(item)} color="default" size="small">
+                        <EditIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteService(item.id, item.name)} color="error" size="small">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
                   )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+                </Stack>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Card sx={{ p: 6, textAlign: 'center', border: '1px dashed #ccc', borderRadius: 3 }}>
+          <Typography color="text.secondary">No services defined yet.</Typography>
+        </Card>
+      )}
+
+      {/* FAB to Add Service */}
+      {isAdmin() && (
+        <Fab
+          color="primary"
+          variant="extended"
+          onClick={handleOpenAddModal}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            fontWeight: 'bold',
+            textTransform: 'none',
+            px: 3,
+            boxShadow: '0 4px 14px rgba(11, 83, 148, 0.4)',
+          }}
+        >
+          <AddIcon sx={{ mr: 1 }} />
+          Create Service
+        </Fab>
+      )}
 
       {/* Add / Edit Service Dialog */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>
-          {editMode ? 'Edit Service Rate' : 'Add New Service & Rate'}
+          {editMode ? 'Configure Service Details' : 'Establish New Service'}
         </DialogTitle>
         <Box component="form" onSubmit={handleSaveService}>
           <DialogContent dividers>
@@ -273,7 +279,7 @@ const Services = () => {
                 label="Unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                placeholder="e.g. LOAD, pc, sachet, dry"
+                placeholder="e.g. service, pc, wash, rinse, dry, kilo"
               />
             </Stack>
           </DialogContent>

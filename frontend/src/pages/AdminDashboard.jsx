@@ -9,11 +9,7 @@ import {
   Grid,
   Alert,
   AlertTitle,
-  Avatar,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
   CircularProgress,
   Chip,
   Stack,
@@ -34,27 +30,14 @@ import {
   Tab,
 } from '@mui/material';
 import {
-  LocalLaundryService as LaundryIcon,
-  FitnessCenter as WeightIcon,
-  People as PeopleIcon,
   Warning as WarningIcon,
-  CheckCircle as CheckIcon,
-  TrendingUp as ProfitIcon,
-  AccountBalanceWallet as RevenueIcon,
-  Payment as ExpenseIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Legend,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
 } from 'recharts';
 
 const COLORS = ['#0b5394', '#00bcd4', '#8fce00', '#ffd666', '#f44336', '#9c27b0', '#e91e63', '#ff9800', '#795548', '#607d8b'];
@@ -66,8 +49,6 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
 
   const [tableTab, setTableTab] = useState(0); // 0 = Daily Income, 1 = Expenses, 2 = Income by Service
-
-  // Date filters state
   const [filterType, setFilterType] = useState('monthly'); // 'monthly' | 'annual'
   
   const currentLocalDate = new Date();
@@ -121,43 +102,70 @@ const AdminDashboard = () => {
 
   const lowStockProducts = stats?.soapStocks?.filter(item => item.isLow) || [];
   
-  // Format numbers to currency PHP
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val || 0);
   };
 
   return (
     <Box sx={{ flexGrow: 1, pb: 4 }}>
-      
-      {/* Dynamic Date Filter Bar */}
-      <Card sx={{ mb: 4, p: 2.5, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-        <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-          <Grid item xs={12} md={4}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <ToggleButtonGroup
-                value={filterType}
-                exclusive
-                onChange={(e, val) => {
-                  if (val) setFilterType(val);
+      {/* Top Config Card with Segmented Toggle & Date Selectors */}
+      <Card sx={{ mb: 4, p: 2.5, borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid rgba(224, 224, 224, 0.5)' }}>
+        <Grid container spacing={2.5} direction="column">
+          <Grid item xs={12}>
+            {/* Segmented Monthly/Annual view control */}
+            <Box sx={{ border: '1px solid #dcdcdc', borderRadius: '8px', p: '2px', display: 'flex', bgcolor: 'transparent' }}>
+              <Button
+                fullWidth
+                variant={filterType === 'monthly' ? 'contained' : 'text'}
+                onClick={() => setFilterType('monthly')}
+                sx={{
+                  py: 1,
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  boxShadow: 'none',
+                  bgcolor: filterType === 'monthly' ? 'primary.main' : 'transparent',
+                  color: filterType === 'monthly' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: filterType === 'monthly' ? 'primary.dark' : 'rgba(0,0,0,0.02)',
+                    boxShadow: 'none',
+                  }
                 }}
-                size="small"
-                color="primary"
               >
-                <ToggleButton value="monthly" sx={{ fontWeight: 'bold', px: 2.5 }}>Monthly View</ToggleButton>
-                <ToggleButton value="annual" sx={{ fontWeight: 'bold', px: 2.5 }}>Annual View</ToggleButton>
-              </ToggleButtonGroup>
-            </Stack>
+                Monthly Report
+              </Button>
+              <Button
+                fullWidth
+                variant={filterType === 'annual' ? 'contained' : 'text'}
+                onClick={() => setFilterType('annual')}
+                sx={{
+                  py: 1,
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  boxShadow: 'none',
+                  bgcolor: filterType === 'annual' ? 'primary.main' : 'transparent',
+                  color: filterType === 'annual' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: filterType === 'annual' ? 'primary.dark' : 'rgba(0,0,0,0.02)',
+                    boxShadow: 'none',
+                  }
+                }}
+              >
+                Annual Report
+              </Button>
+            </Box>
           </Grid>
 
-          <Grid item xs={12} md={8}>
-            <Stack direction="row" spacing={2} justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+          <Grid item xs={12}>
+            <Stack direction="row" spacing={2}>
               {filterType === 'monthly' && (
-                <FormControl size="small" sx={{ minWidth: 140 }}>
-                  <InputLabel>Month</InputLabel>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="month-select-label">Month</InputLabel>
                   <Select
+                    labelId="month-select-label"
                     value={selectedMonth}
                     label="Month"
                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    sx={{ borderRadius: 2 }}
                   >
                     {monthsList.map((m) => (
                       <MenuItem key={m.value} value={m.value}>
@@ -168,12 +176,14 @@ const AdminDashboard = () => {
                 </FormControl>
               )}
 
-              <FormControl size="small" sx={{ minWidth: 110 }}>
-                <InputLabel>Year</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel id="year-select-label">Year</InputLabel>
                 <Select
+                  labelId="year-select-label"
                   value={selectedYear}
                   label="Year"
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  sx={{ borderRadius: 2 }}
                 >
                   {yearsList.map((y) => (
                     <MenuItem key={y} value={y}>
@@ -194,20 +204,18 @@ const AdminDashboard = () => {
       )}
 
       {/* Dynamic Title */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" color="primary.dark" sx={{ fontWeight: 'bold', letterSpacing: '-0.5px' }}>
-            {filterType === 'monthly'
-              ? `${monthsList.find(m => m.value === selectedMonth)?.label.toUpperCase()} ${selectedYear}`
-              : `ANNUAL REPORT ${selectedYear}`}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'medium' }}>
-            AquaClean Laundry Services • Shop Manager Dashboard
-          </Typography>
-        </Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" color="primary.dark" sx={{ fontWeight: 'extraBold', letterSpacing: '-0.5px', textTransform: 'uppercase' }}>
+          {filterType === 'monthly'
+            ? `${monthsList.find(m => m.value === selectedMonth)?.label.toUpperCase()} ${selectedYear}`
+            : `ANNUAL REPORT ${selectedYear}`}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Tacky's Laundry • Shop Manager Dashboard
+        </Typography>
       </Box>
 
-      {/* LOW STOCK BANNER ALERTS */}
+      {/* Low Stock Alerts */}
       {lowStockProducts.length > 0 && (
         <Box sx={{ mb: 4 }}>
           <Alert severity="warning" sx={{ borderRadius: 3, border: '1px solid #ffe0b2' }}>
@@ -229,114 +237,121 @@ const AdminDashboard = () => {
         </Box>
       )}
 
-      {/* TWO COLUMN MAIN DASHBOARD LAYOUT */}
+      {/* Two Column Layout */}
       <Grid container spacing={3}>
         {/* Left Column: Metrics & Charts */}
         <Grid item xs={12} lg={8}>
           <Stack spacing={3}>
             
-            {/* CASHFLOW METRIC CARDS */}
-            <Grid container spacing={3}>
-              {/* INCOME */}
-              <Grid item xs={12} sm={4}>
-                <Card
-                  sx={{
-                    borderRadius: 3.5,
-                    border: '2px solid #c5e1a5',
-                    bgcolor: '#f1f8e9',
-                    boxShadow: 'none',
-                    transition: 'transform 0.2s',
-                    '&:hover': { transform: 'scale(1.02)' }
-                  }}
-                >
-                  <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-                    <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-                      INCOME
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: '800', mt: 0.5, color: '#33691e' }}>
-                      {formatCurrency(stats?.totalRevenue)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+            {/* CASHFLOW METRIC CARDS (Income & Expenses side-by-side, Profit below) */}
+            <Box>
+              <Grid container spacing={2}>
+                {/* INCOME (Green background and border) */}
+                <Grid item xs={6}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      border: '1.5px solid #d4e157',
+                      bgcolor: '#f1f8e9',
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, px: 2.5 }}>
+                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block' }}>
+                        INCOME
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, color: '#33691e' }}>
+                        {formatCurrency(stats?.totalRevenue)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              {/* EXPENSES */}
-              <Grid item xs={12} sm={4}>
-                <Card
-                  sx={{
-                    borderRadius: 3.5,
-                    border: '2px solid #f8b4b4',
-                    bgcolor: '#fde8e8',
-                    boxShadow: 'none',
-                    transition: 'transform 0.2s',
-                    '&:hover': { transform: 'scale(1.02)' }
-                  }}
-                >
-                  <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-                    <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-                      EXPENSES
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: '800', mt: 0.5, color: '#c81e1e' }}>
-                      {formatCurrency(stats?.totalExpenses)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+                {/* EXPENSES (Red background and border) */}
+                <Grid item xs={6}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      border: '1.5px solid #f8b4b4',
+                      bgcolor: '#fde8e8',
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, px: 2.5 }}>
+                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block' }}>
+                        EXPENSES
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, color: '#c81e1e' }}>
+                        {formatCurrency(stats?.totalExpenses)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              {/* PROFIT */}
-              <Grid item xs={12} sm={4}>
-                <Card
-                  sx={{
-                    borderRadius: 3.5,
-                    border: (stats?.netProfit || 0) >= 0 ? '2px solid #80cbc4' : '2px solid #f8b4b4',
-                    bgcolor: (stats?.netProfit || 0) >= 0 ? '#e0f2f1' : '#fde8e8',
-                    boxShadow: 'none',
-                    transition: 'transform 0.2s',
-                    '&:hover': { transform: 'scale(1.02)' }
-                  }}
-                >
-                  <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-                    <Typography color={(stats?.netProfit || 0) >= 0 ? '#004d40' : '#c81e1e'} variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-                      PROFIT
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: '800', mt: 0.5, color: (stats?.netProfit || 0) >= 0 ? '#004d40' : '#c81e1e' }}>
-                      {formatCurrency(stats?.netProfit)}
-                    </Typography>
-                  </CardContent>
-                </Card>
+                {/* PROFIT (Cyan background and border, full width) */}
+                <Grid item xs={12}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      border: '1.5px solid #80cbc4',
+                      bgcolor: '#e0f2f1',
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, px: 2.5 }}>
+                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block' }}>
+                        PROFIT
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, color: '#004d40' }}>
+                        {formatCurrency(stats?.netProfit)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
               </Grid>
-            </Grid>
+            </Box>
 
             {/* CHARTS CONTAINER GRID */}
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', mt: 1 }}>
+              Analytical Breakdowns
+            </Typography>
+
             <Grid container spacing={3}>
-              
               {/* EXPENSES DONUT CHART */}
-              <Grid item xs={12} md={4}>
-                <Card sx={{ height: '100%', borderRadius: 3 }}>
-                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary', textAlign: 'center', mb: 2 }}>
+              <Grid item xs={12} md={6}>
+                <Card sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
+                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', mb: 2 }}>
                       MONTHLY EXPENSES
                     </Typography>
-                    <Box sx={{ width: '100%', height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.expenseCategoryBreakdown && stats.expenseCategoryBreakdown.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={stats.expenseCategoryBreakdown}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={50}
-                              outerRadius={70}
-                              paddingAngle={2}
-                              dataKey="value"
-                            >
-                              {stats.expenseCategoryBreakdown.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => formatCurrency(value)} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={stats.expenseCategoryBreakdown}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={2}
+                                dataKey="value"
+                              >
+                                {stats.expenseCategoryBreakdown.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => formatCurrency(value)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <Box sx={{ position: 'absolute', textAlign: 'center' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold' }}>Total</Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                              {formatCurrency(stats.totalExpenses)}
+                            </Typography>
+                          </Box>
+                        </>
                       ) : (
                         <Box sx={{ p: 4, border: '1px dashed #ccc', borderRadius: '50%', width: 110, height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Typography variant="caption" color="text.secondary">No Expenses</Typography>
@@ -345,15 +360,15 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list */}
-                    <Box sx={{ mt: 2, flexGrow: 1, overflowY: 'auto', maxHeight: 110 }}>
+                    <Box sx={{ mt: 2, maxHeight: 110, overflowY: 'auto' }}>
                       {stats?.expenseCategoryBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
-                            <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>{item.name}</Typography>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>{item.name}</Typography>
                           </Stack>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                            {formatCurrency(item.value)}
+                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                            {formatCurrency(item.value)} ({((item.value / (stats.totalExpenses || 1)) * 100).toFixed(1)}%)
                           </Typography>
                         </Box>
                       ))}
@@ -363,95 +378,57 @@ const AdminDashboard = () => {
               </Grid>
 
               {/* INCOME DONUT CHART */}
-              <Grid item xs={12} md={4}>
-                <Card sx={{ height: '100%', borderRadius: 3 }}>
-                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary', textAlign: 'center', mb: 2 }}>
-                      MONTHLY INCOME
+              <Grid item xs={12} md={6}>
+                <Card sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
+                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', mb: 2 }}>
+                      MONTHLY INCOME BY SERVICE
                     </Typography>
-                    <Box sx={{ width: '100%', height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.incomeServiceBreakdown && stats.incomeServiceBreakdown.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={stats.incomeServiceBreakdown}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={50}
-                              outerRadius={70}
-                              paddingAngle={2}
-                              dataKey="value"
-                            >
-                              {stats.incomeServiceBreakdown.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => formatCurrency(value)} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={stats.incomeServiceBreakdown}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={2}
+                                dataKey="value"
+                              >
+                                {stats.incomeServiceBreakdown.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => formatCurrency(value)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <Box sx={{ position: 'absolute', textAlign: 'center' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold' }}>Total</Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                              {formatCurrency(stats.totalRevenue)}
+                            </Typography>
+                          </Box>
+                        </>
                       ) : (
                         <Box sx={{ p: 4, border: '1px dashed #ccc', borderRadius: '50%', width: 110, height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Typography variant="caption" color="text.secondary">No Services Revenue</Typography>
+                          <Typography variant="caption" color="text.secondary">No Service Revenues</Typography>
                         </Box>
                       )}
                     </Box>
                     
                     {/* Legend list */}
-                    <Box sx={{ mt: 2, flexGrow: 1, overflowY: 'auto', maxHeight: 110 }}>
+                    <Box sx={{ mt: 2, maxHeight: 110, overflowY: 'auto' }}>
                       {stats?.incomeServiceBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
-                            <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>{item.name}</Typography>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>{item.name}</Typography>
                           </Stack>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                            {formatCurrency(item.value)}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* MOP CHART */}
-              <Grid item xs={12} md={4}>
-                <Card sx={{ height: '100%', borderRadius: 3 }}>
-                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary', textAlign: 'center', mb: 2 }}>
-                      MOP INCOME (CASH VS GCASH)
-                    </Typography>
-                    <Box sx={{ width: '100%', height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      {stats?.mopBreakdown && stats.mopBreakdown.some(item => item.value > 0) ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={stats.mopBreakdown}
-                            margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                            <YAxis tick={{ fontSize: 10 }} />
-                            <Tooltip formatter={(value) => formatCurrency(value)} />
-                            <Bar dataKey="value" name="Mode of Payment" radius={[4, 4, 0, 0]}>
-                              <Cell fill="#0b5394" />
-                              <Cell fill="#00bcd4" />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <Box sx={{ py: 6, textAlign: 'center' }}>
-                          <Typography variant="caption" color="text.secondary">No Payment Records</Typography>
-                        </Box>
-                      )}
-                    </Box>
-
-                    {/* MOP stats breakdown */}
-                    <Box sx={{ mt: 2 }}>
-                      {stats?.mopBreakdown?.map((item) => (
-                        <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>{item.name}</Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                            {formatCurrency(item.value)}
+                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                            {formatCurrency(item.value)} ({((item.value / (stats.totalRevenue || 1)) * 100).toFixed(1)}%)
                           </Typography>
                         </Box>
                       ))}

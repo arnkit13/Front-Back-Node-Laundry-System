@@ -7,13 +7,6 @@ import {
   Typography,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -26,15 +19,16 @@ import {
   Tab,
   Tabs,
   CircularProgress,
+  Fab,
+  Grid,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  History as HistoryIcon,
   Warning as WarningIcon,
   Refresh as RefreshIcon,
-  LocalFlorist as CleanIcon,
   Delete as DeleteIcon,
+  Build as AdjustIcon,
 } from '@mui/icons-material';
 
 const Inventory = () => {
@@ -205,181 +199,211 @@ const Inventory = () => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, pb: 8, position: 'relative' }}>
       {/* Page Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-          Soap Stock Inventory
+        <Typography variant="h5" sx={{ fontWeight: 'extraBold', color: 'primary.dark' }}>
+          Inventory Manager
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <IconButton onClick={loadData} color="primary" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
             <RefreshIcon />
           </IconButton>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAddModal}
-            sx={{ fontWeight: 'bold' }}
-          >
-            Add Soap Product
-          </Button>
         </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {/* Tabs Menu */}
-      <Paper sx={{ mb: 3, borderRadius: 2 }}>
+      <Paper sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
           indicatorColor="primary"
           textColor="primary"
+          variant="fullWidth"
           sx={{ borderBottom: 1, borderColor: 'divider' }}
         >
-          <Tab label="Soap Stock Levels" sx={{ fontWeight: 'bold', py: 2 }} />
-          <Tab label="Stock Audit Trail Logs" sx={{ fontWeight: 'bold', py: 2 }} />
+          <Tab label="Stock Ledger" sx={{ fontWeight: 'bold', py: 2 }} />
+          <Tab label="Stock Audit Logs" sx={{ fontWeight: 'bold', py: 2 }} />
         </Tabs>
       </Paper>
+
+      {/* Role Banner */}
+      <Alert severity="success" sx={{ mb: 3, borderRadius: 3, border: '1px solid #c8e6c9', bgcolor: '#e8f5e9', color: '#2e7d32' }}>
+        Welcome back, Shop Manager (Admin)!
+      </Alert>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
       ) : activeTab === 0 ? (
-        /* Tab 0: Product Stocks List */
-        <Card>
-          <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 2 }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>No.</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763' }}>List of Items</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Unit</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Min</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Initial</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Available</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#d0e0e3', color: '#073763', textAlign: 'center' }} align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {products.length > 0 ? (
-                  products.map((product, idx) => {
-                    const minVal = product.minStock !== null ? product.minStock : 20.0;
-                    const initialVal = product.initialStock !== null ? product.initialStock : product.quantity;
-                    const isLow = product.quantity < minVal;
-                    return (
-                      <TableRow key={product.id} hover>
-                        <TableCell sx={{ textAlign: 'center' }}>{idx + 1}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>{product.name}</TableCell>
-                        <TableCell sx={{ textAlign: 'center' }}>{product.unit}</TableCell>
-                        <TableCell sx={{ textAlign: 'center' }}>{minVal % 1 === 0 ? minVal : minVal.toFixed(2)}</TableCell>
-                        <TableCell sx={{ textAlign: 'center' }}>{initialVal % 1 === 0 ? initialVal : initialVal.toFixed(2)}</TableCell>
-                        <TableCell sx={{ textAlign: 'center', fontWeight: 'bold', color: isLow ? 'error.main' : 'text.primary' }}>
-                          {product.quantity % 1 === 0 ? product.quantity : product.quantity.toFixed(2)}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: 'center' }}>
-                          <Chip
-                            label={isLow ? 'Restock' : 'In Stock'}
-                            color={isLow ? 'error' : 'success'}
-                            variant={isLow ? 'filled' : 'filled'}
-                            size="small"
-                            sx={{ fontWeight: 'bold' }}
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<EditIcon />}
-                              onClick={() => handleOpenAdjustModal(product)}
-                              sx={{ borderRadius: 2 }}
-                            >
-                              Adjust
-                            </Button>
-                            <IconButton onClick={() => handleDeleteProduct(product.id)} color="error" size="small">
-                              <DeleteIcon />
-                            </IconButton>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                      No soap products registered.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
+        /* Tab 0: Product Stocks List in Card layouts matching screenshot */
+        products.length > 0 ? (
+          <Grid container spacing={2}>
+            {products.map((product) => {
+              const minVal = product.minStock !== null ? product.minStock : 20.0;
+              const initialVal = product.initialStock !== null ? product.initialStock : product.quantity;
+              const isLow = product.quantity < minVal;
+              return (
+                <Grid item xs={12} key={product.id}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                      border: '1px solid rgba(0,0,0,0.05)',
+                      p: 2,
+                    }}
+                  >
+                    {/* Top Row: Name (with low stock warning) and Available Stock Qty */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                          {product.name}
+                        </Typography>
+                        {isLow && (
+                          <WarningIcon color="warning" fontSize="small" sx={{ ml: 1 }} />
+                        )}
+                      </Box>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontWeight: 'bold',
+                          color: isLow ? 'error.main' : 'success.main',
+                        }}
+                      >
+                        {product.quantity.toFixed(1)} {product.unit}
+                      </Typography>
+                    </Box>
+
+                    {/* Middle Row: min alert and initial seed details */}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                      Min Alert Level: {minVal.toFixed(1)} {product.unit} • Initial Seed: {initialVal.toFixed(1)} {product.unit}
+                    </Typography>
+
+                    {/* Bottom Row: Action buttons */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<AdjustIcon sx={{ fontSize: '0.9rem' }} />}
+                        onClick={() => handleOpenAdjustModal(product)}
+                        sx={{
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 'bold',
+                          color: 'primary.main',
+                          borderColor: 'primary.main',
+                        }}
+                      >
+                        Adjust Stock
+                      </Button>
+                      <IconButton onClick={() => handleDeleteProduct(product.id)} color="error" size="small" sx={{ ml: 1 }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        ) : (
+          <Card sx={{ p: 6, textAlign: 'center', border: '1px dashed #ccc', borderRadius: 3 }}>
+            <Typography color="text.secondary">No soap products registered.</Typography>
+          </Card>
+        )
       ) : (
-        /* Tab 1: Audit Log History */
-        <Card>
-          <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 0 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: 'background.default' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Log ID</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Date & Time</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Product Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Action Type</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Qty Changed</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Prior Stock</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>New Stock Level</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Performed By</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Notes/Details</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {history.length > 0 ? (
-                  history.map((log) => (
-                    <TableRow key={log.id} hover>
-                      <TableCell>#{log.id}</TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        /* Tab 1: Audit Log History List in Card layouts */
+        history.length > 0 ? (
+          <Grid container spacing={2}>
+            {history.map((log) => (
+              <Grid item xs={12} key={log.id}>
+                <Card
+                  sx={{
+                    borderRadius: 3,
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    p: 2,
+                  }}
+                >
+                  {/* Top Row: Action Chip / Time and Qty Changed */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Chip
+                        label={log.transactionType}
+                        size="small"
+                        color={
+                          log.transactionType === 'ADD_STOCK' ? 'primary' :
+                          log.transactionType === 'USE_STOCK' ? 'default' : 'secondary'
+                        }
+                        variant="outlined"
+                        sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
                         {new Date(log.createdAt).toLocaleString()}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>{log.soapProduct?.name}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={log.transactionType}
-                          size="small"
-                          color={
-                            log.transactionType === 'ADD_STOCK' ? 'primary' :
-                            log.transactionType === 'USE_STOCK' ? 'default' : 'secondary'
-                          }
-                          variant="outlined"
-                          sx={{ fontWeight: 600 }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: log.quantityChanged < 0 ? 'error.main' : 'success.main' }}>
-                        {log.quantityChanged > 0 ? `+${log.quantityChanged}` : log.quantityChanged} {log.soapProduct?.unit}
-                      </TableCell>
-                      <TableCell>{log.previousQuantity.toFixed(2)} {log.soapProduct?.unit}</TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>{log.newQuantity.toFixed(2)} {log.soapProduct?.unit}</TableCell>
-                      <TableCell sx={{ fontWeight: 500, color: 'primary.dark' }}>
-                        {log.performedBy?.fullName}
-                      </TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{log.notes || '—'}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                      No stock history logs available.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 'bold',
+                        color: log.quantityChanged < 0 ? 'error.main' : 'success.main',
+                      }}
+                    >
+                      {log.quantityChanged > 0 ? `+${log.quantityChanged.toFixed(2)}` : log.quantityChanged.toFixed(2)} {log.soapProduct?.unit}
+                    </Typography>
+                  </Box>
+
+                  {/* Middle Row: Product link and stock level changes */}
+                  <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
+                    Product: <strong>{log.soapProduct?.name}</strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    Prior Stock: {log.previousQuantity.toFixed(2)} {log.soapProduct?.unit} → New Stock: {log.newQuantity.toFixed(2)} {log.soapProduct?.unit}
+                  </Typography>
+
+                  {/* Bottom Row: Performed By and Notes */}
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                      By: {log.performedBy?.fullName || 'System'}
+                    </Typography>
+                    {log.notes && (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        {log.notes}
+                      </Typography>
+                    )}
+                  </Box>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Card sx={{ p: 6, textAlign: 'center', border: '1px dashed #ccc', borderRadius: 3 }}>
+            <Typography color="text.secondary">No stock history logs available.</Typography>
+          </Card>
+        )
       )}
+
+      {/* FAB to Add Soap Product */}
+      <Fab
+        color="primary"
+        variant="extended"
+        onClick={handleOpenAddModal}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          fontWeight: 'bold',
+          textTransform: 'none',
+          px: 3,
+          boxShadow: '0 4px 14px rgba(11, 83, 148, 0.4)',
+        }}
+      >
+        <AddIcon sx={{ mr: 1 }} />
+        Add Resource
+      </Fab>
 
       {/* Add Product Modal Dialog */}
       <Dialog open={openAddModal} onClose={handleCloseAddModal} maxWidth="xs" fullWidth>
@@ -482,7 +506,7 @@ const Inventory = () => {
                 label="Notes / Reason"
                 value={adjustNotes}
                 onChange={(e) => setAdjustNotes(e.target.value)}
-                placeholder="e.g., Delivery refock, Spillage adjustment..."
+                placeholder="e.g., Delivery restock, Spillage adjustment..."
               />
             </Stack>
           </DialogContent>

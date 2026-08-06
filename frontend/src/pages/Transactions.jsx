@@ -8,13 +8,6 @@ import {
   Typography,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -31,6 +24,11 @@ import {
   Checkbox,
   Chip,
   Divider,
+  Grid,
+  FormControl,
+  Select,
+  InputLabel,
+  Collapse,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,6 +37,8 @@ import {
   Refresh as RefreshIcon,
   Print as PrintIcon,
   CheckCircle as SuccessIcon,
+  FilterList as FilterIcon,
+  InfoOutlined as InfoIcon,
 } from '@mui/icons-material';
 
 const calculateDurationInShop = (createdAtStr, pickedUpAtStr) => {
@@ -68,12 +68,20 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [products, setProducts] = useState([]);
   const [servicesList, setServicesList] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Search & Pagination State
+  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedMachineFilter, setSelectedMachineFilter] = useState('All');
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
+  const [selectedPaymentFilter, setSelectedPaymentFilter] = useState('All');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState('All');
+  const [selectedYearFilter, setSelectedYearFilter] = useState('All');
+
+  // Pagination State
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -96,6 +104,23 @@ const Transactions = () => {
   // Receipt Modal State
   const [openReceiptModal, setOpenReceiptModal] = useState(false);
   const [receiptTx, setReceiptTx] = useState(null);
+
+  const monthsList = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' },
+  ];
+
+  const yearsList = [2024, 2025, 2026, 2027, 2028];
 
   const fetchTransactions = async () => {
     try {
@@ -126,12 +151,22 @@ const Transactions = () => {
     }
   };
 
+  const fetchBranches = async () => {
+    try {
+      const response = await api.get('/api/branches');
+      setBranches(response.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     setError('');
     await fetchTransactions();
     await fetchProducts();
     await fetchServices();
+    await fetchBranches();
     setLoading(false);
   };
 
@@ -269,16 +304,38 @@ const Transactions = () => {
   const selectedProductDetails = products.find(p => p.id === selectedProductId);
   const calculatedRemainingSoap = getRemainingSoap();
 
-  // Search filtering
+  // Multi-tier filtering matching Android's dropdown selectors
   const filteredTransactions = transactions.filter((tx) => {
-    if (selectedMachineFilter !== 'All' && tx.machineNumber !== selectedMachineFilter) {
-      return false;
-    }
+    // Search filter
     const searchString = searchTerm.toLowerCase();
     const customer = (tx.customerName || 'anonymous').toLowerCase();
     const loggedBy = (tx.user?.fullName || '').toLowerCase();
     const soapName = (tx.soapProduct?.name || '').toLowerCase();
-    return customer.includes(searchString) || loggedBy.includes(searchString) || soapName.includes(searchString);
+    const matchesSearch = customer.includes(searchString) || loggedBy.includes(searchString) || soapName.includes(searchString);
+    if (!matchesSearch) return false;
+
+    // Branch filter
+    if (selectedBranchFilter !== 'All' && tx.branch?.id !== Number(selectedBranchFilter)) return false;
+
+    // Payment filter
+    if (selectedPaymentFilter !== 'All' && tx.paymentMethod?.toLowerCase() !== selectedPaymentFilter.toLowerCase()) return false;
+
+    // Machine filter
+    if (selectedMachineFilter !== 'All' && tx.machineNumber !== selectedMachineFilter) return false;
+
+    // Month filter
+    if (selectedMonthFilter !== 'All') {
+      const txMonth = new Date(tx.date).getMonth() + 1;
+      if (txMonth !== Number(selectedMonthFilter)) return false;
+    }
+
+    // Year filter
+    if (selectedYearFilter !== 'All') {
+      const txYear = new Date(tx.date).getFullYear();
+      if (txYear !== Number(selectedYearFilter)) return false;
+    }
+
+    return true;
   });
 
   // Pagination Handlers
@@ -297,16 +354,19 @@ const Transactions = () => {
     
     document.body.innerHTML = printContent.innerHTML;
     window.print();
-    // Reload layout back to normal
     window.location.reload();
+  };
+
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val || 0);
   };
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      {/* Top action header */}
+      {/* Top Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-          Laundry Transaction Logs
+        <Typography variant="h5" sx={{ fontWeight: 'extraBold', color: 'primary.dark' }}>
+          Transactions History
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <IconButton onClick={loadData} color="primary" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
@@ -325,17 +385,20 @@ const Transactions = () => {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {/* Main card panel with search & list */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          {/* Search bar row */}
-          <Box sx={{ p: 3, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { xs: 'flex-start', md: 'center' } }}>
+      {/* Main card panel with search & filter panel */}
+      <Card sx={{ mb: 3, p: 2.5, borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <Stack spacing={2}>
+          {/* Search customer and Filters toggle row */}
+          <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
             <TextField
-              placeholder="Search by customer, employee, or soap name..."
+              placeholder="Search customer..."
               size="small"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ maxWidth: 450, width: '100%', '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(0);
+              }}
+              sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -344,154 +407,249 @@ const Transactions = () => {
                 ),
               }}
             />
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ flexGrow: 1, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-              {['All', 'Machine 1', 'Machine 2', 'Machine 3', 'Machine 4'].map((m) => (
-                <Button
-                  key={m}
-                  variant={selectedMachineFilter === m ? 'contained' : 'outlined'}
-                  size="small"
-                  onClick={() => {
-                    setSelectedMachineFilter(m);
-                    setPage(0);
-                  }}
-                  sx={{ borderRadius: 2, fontWeight: 'bold' }}
-                >
-                  {m === 'All' ? 'All Machines' : m}
-                </Button>
-              ))}
-            </Stack>
-          </Box>
+            <Button
+              variant={showFilters ? 'contained' : 'outlined'}
+              startIcon={<FilterIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{ fontWeight: 'bold', borderRadius: 2, px: 3 }}
+            >
+              Filters
+            </Button>
+          </Stack>
 
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 0 }}>
-              <Table sx={{ minWidth: 650 }}>
-                <TableHead sx={{ bgcolor: 'background.default' }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Customer Name</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Machine</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Weight</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Services Checked</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Payment</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Total Price</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Soap Used</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Logged By</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Pickup Status</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredTransactions.length > 0 ? (
-                    filteredTransactions
-                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      .map((tx) => (
-                        <TableRow key={tx.id} hover>
-                          <TableCell>#{tx.id}</TableCell>
-                          <TableCell>{tx.date}</TableCell>
-                          <TableCell sx={{ fontWeight: 500 }}>
-                            {tx.customerName || <Typography component="span" variant="body2" color="text.disabled">Anonymous</Typography>}
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{tx.machineNumber || '—'}</TableCell>
-                          <TableCell>{tx.weightKg} kg</TableCell>
-                          <TableCell>
-                            {tx.serviceItems && tx.serviceItems.length > 0 ? (
-                              tx.serviceItems.map((item, idx) => (
-                                <Chip
-                                  key={idx}
-                                  label={`${item.laundryService?.name || 'Service'} (x${item.quantity})`}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ mr: 0.5, mb: 0.5, fontWeight: 'medium' }}
-                                />
-                              ))
-                            ) : (
-                              <Typography variant="body2" color="text.disabled">—</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>
-                            <Chip
-                              label={tx.paymentMethod === 'Gcash' ? `GCash (${tx.referenceNumber || '—'})` : 'Cash'}
-                              color={tx.paymentMethod === 'Gcash' ? 'primary' : 'default'}
-                              size="small"
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                            {tx.totalAmount != null ? `₱${tx.totalAmount.toFixed(2)}` : '—'}
-                          </TableCell>
-                          <TableCell>
-                            {tx.soapProduct?.name} ({tx.soapUsedQty} {tx.soapProduct?.unit})
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 500, color: 'primary.dark' }}>
-                            {tx.user?.fullName}
-                            {tx.branch?.name && (
-                              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                                {tx.branch.name}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={tx.pickedUp ? `Picked Up (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `In Shop (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
-                              color={tx.pickedUp ? 'success' : 'warning'}
-                              size="small"
-                              variant="outlined"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                              <IconButton
-                                onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
-                                color="primary"
-                                size="small"
-                                title="View/Print Receipt"
-                              >
-                                <PrintIcon />
-                              </IconButton>
-                              {!tx.pickedUp && (
-                                <IconButton
-                                  onClick={() => handleMarkAsPickedUp(tx.id)}
-                                  color="success"
-                                  size="small"
-                                  title="Mark as Picked Up"
-                                >
-                                  <SuccessIcon />
-                                </IconButton>
-                              )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={12} align="center" sx={{ py: 6 }}>
-                        <Typography color="text.secondary">No laundry transactions found.</Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+          {/* Collapsible Filter Selectors Matching Android dropdowns */}
+          <Collapse in={showFilters}>
+            <Grid container spacing={2} sx={{ pt: 1 }}>
+              {/* Branch Selection */}
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Branch</InputLabel>
+                  <Select
+                    value={selectedBranchFilter}
+                    label="Branch"
+                    onChange={(e) => {
+                      setSelectedBranchFilter(e.target.value);
+                      setPage(0);
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="All">All Branches</MenuItem>
+                    {branches.map(b => (
+                      <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={filteredTransactions.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </CardContent>
+              {/* Payment Selection */}
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Payment</InputLabel>
+                  <Select
+                    value={selectedPaymentFilter}
+                    label="Payment"
+                    onChange={(e) => {
+                      setSelectedPaymentFilter(e.target.value);
+                      setPage(0);
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="All">All</MenuItem>
+                    <MenuItem value="Cash">Cash</MenuItem>
+                    <MenuItem value="Gcash">GCash</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Month Selection */}
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Month</InputLabel>
+                  <Select
+                    value={selectedMonthFilter}
+                    label="Month"
+                    onChange={(e) => {
+                      setSelectedMonthFilter(e.target.value);
+                      setPage(0);
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="All">All Months</MenuItem>
+                    {monthsList.map(m => (
+                      <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Year Selection */}
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Year</InputLabel>
+                  <Select
+                    value={selectedYearFilter}
+                    label="Year"
+                    onChange={(e) => {
+                      setSelectedYearFilter(e.target.value);
+                      setPage(0);
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="All">All Years</MenuItem>
+                    {yearsList.map(y => (
+                      <MenuItem key={y} value={y}>{y}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Machine Selection (Extra Row filter) */}
+              <Grid item xs={12}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', alignSelf: 'center', mr: 1, color: 'text.secondary' }}>
+                    Machine Allocation:
+                  </Typography>
+                  {['All', 'Machine 1', 'Machine 2', 'Machine 3', 'Machine 4'].map((m) => (
+                    <Button
+                      key={m}
+                      variant={selectedMachineFilter === m ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => {
+                        setSelectedMachineFilter(m);
+                        setPage(0);
+                      }}
+                      sx={{ borderRadius: 2, fontWeight: 'bold', textTransform: 'none', px: 2 }}
+                    >
+                      {m}
+                    </Button>
+                  ))}
+                </Stack>
+              </Grid>
+            </Grid>
+          </Collapse>
+        </Stack>
       </Card>
+
+      {/* Transaction Logs List of Cards */}
+      <Box sx={{ mb: 3 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : filteredTransactions.length > 0 ? (
+          <Stack spacing={2}>
+            {filteredTransactions
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((tx) => (
+                <Card
+                  key={tx.id}
+                  sx={{
+                    borderRadius: 3,
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    p: 2,
+                    position: 'relative',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
+                    }
+                  }}
+                >
+                  <Stack spacing={1.5}>
+                    {/* Header: customerName and totalAmount */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                        {tx.customerName || 'Anonymous Customer'}
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        {formatCurrency(tx.totalAmount)}
+                      </Typography>
+                    </Box>
+
+                    {/* Subtitle: Date, Machine allocation and kg weight */}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem' }}>
+                      {tx.date} • {tx.machineNumber || 'No Machine'} • {tx.weightKg ? `${tx.weightKg.toFixed(1)} kg washed` : '—'}
+                    </Typography>
+
+                    {/* Chips Row and Action Info button */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                        {/* Payment MOP chip */}
+                        <Chip
+                          label={tx.paymentMethod === 'Gcash' ? 'GCash' : 'Cash'}
+                          size="small"
+                          sx={{
+                            fontWeight: 'bold',
+                            fontSize: '0.65rem',
+                            height: 22,
+                            bgcolor: '#f1f5f9',
+                            color: 'text.primary'
+                          }}
+                        />
+
+                        {/* Branch allocation chip */}
+                        {tx.branch?.name && (
+                          <Chip
+                            label={tx.branch.name}
+                            size="small"
+                            sx={{
+                              fontWeight: 'bold',
+                              fontSize: '0.65rem',
+                              height: 22,
+                              bgcolor: '#e3f2fd',
+                              color: 'primary.main'
+                            }}
+                          />
+                        )}
+
+                        {/* Claim/Pickup Status chip */}
+                        <Chip
+                          label={tx.pickedUp ? `Picked Up (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `In Shop (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
+                          size="small"
+                          sx={{
+                            fontWeight: 'bold',
+                            fontSize: '0.65rem',
+                            height: 22,
+                            bgcolor: tx.pickedUp ? '#e8f5e9' : '#fffde7',
+                            color: tx.pickedUp ? '#2e7d32' : '#f57f17',
+                            border: '1px solid',
+                            borderColor: tx.pickedUp ? '#c8e6c9' : '#fff9c4'
+                          }}
+                        />
+                      </Stack>
+
+                      {/* Detail Info Trigger icon button */}
+                      <IconButton
+                        onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
+                        color="default"
+                        size="small"
+                        sx={{ bgcolor: '#f4f4f5', '&:hover': { bgcolor: '#e4e4e7' } }}
+                      >
+                        <InfoIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </IconButton>
+                    </Box>
+                  </Stack>
+                </Card>
+              ))}
+          </Stack>
+        ) : (
+          <Card sx={{ p: 6, textAlign: 'center', border: '1px dashed #ccc', borderRadius: 3 }}>
+            <Typography color="text.secondary">No laundry transactions found.</Typography>
+          </Card>
+        )}
+      </Box>
+
+      {/* Pagination component */}
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={filteredTransactions.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
 
       {/* Record Transaction Modal Dialog */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>

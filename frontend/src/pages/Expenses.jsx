@@ -7,13 +7,6 @@ import {
   Typography,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,6 +18,7 @@ import {
   MenuItem,
   InputAdornment,
   Grid,
+  Fab,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -180,124 +174,178 @@ const Expenses = () => {
 
   const totalExpenseSum = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val || 0);
+  };
+
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, pb: 8, position: 'relative' }}>
       {/* Top Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-          Operational Expenses Ledger
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 'extraBold', color: 'primary.dark' }}>
+            Expenses Ledger
+          </Typography>
+        </Box>
+        <Box>
           <IconButton onClick={loadData} color="primary" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
             <RefreshIcon />
           </IconButton>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAddModal}
-            sx={{ fontWeight: 'bold' }}
-          >
-            Record Expense
-          </Button>
         </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {/* Financial Overview Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={4}>
-          <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography color="text.secondary" variant="overline" sx={{ fontWeight: 'bold' }}>Total Operational Expenses</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                ₱{totalExpenseSum.toFixed(2)}
+          <Card
+            sx={{
+              borderRadius: 3,
+              border: '1.5px solid #f8b4b4',
+              bgcolor: '#fde8e8',
+              boxShadow: 'none',
+            }}
+          >
+            <CardContent sx={{ p: 2, px: 2.5 }}>
+              <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block' }}>
+                Total Operational
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, color: '#c81e1e' }}>
+                {formatCurrency(totalExpenseSum)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
+
         <Grid item xs={12} sm={4}>
-          <Card sx={{ borderLeft: '4px solid', borderColor: 'warning.main' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography color="text.secondary" variant="overline" sx={{ fontWeight: 'bold' }}>Total Expenses Recorded</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                {expenses.length} Entries
+          <Card
+            sx={{
+              borderRadius: 3,
+              border: '1.5px solid #ffe885',
+              bgcolor: '#fffde7',
+              boxShadow: 'none',
+            }}
+          >
+            <CardContent sx={{ p: 2, px: 2.5 }}>
+              <Typography color="#f57f17" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block' }}>
+                Total Entries
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, color: '#f57f17' }}>
+                {expenses.length} Logs
               </Typography>
             </CardContent>
           </Card>
         </Grid>
+
         <Grid item xs={12} sm={4}>
-          <Card sx={{ borderLeft: '4px solid', borderColor: 'info.main' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography color="text.secondary" variant="overline" sx={{ fontWeight: 'bold' }}>Average Cost Per Entry</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                ₱{expenses.length > 0 ? (totalExpenseSum / expenses.length).toFixed(2) : '0.00'}
+          <Card
+            sx={{
+              borderRadius: 3,
+              border: '1.5px solid #80cbc4',
+              bgcolor: '#e0f2f1',
+              boxShadow: 'none',
+            }}
+          >
+            <CardContent sx={{ p: 2, px: 2.5 }}>
+              <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block' }}>
+                Average Cost
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5, color: '#004d40' }}>
+                {formatCurrency(expenses.length > 0 ? (totalExpenseSum / expenses.length) : 0)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Expenses Ledger Table */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto', borderRadius: 0 }}>
-              <Table>
-                <TableHead sx={{ bgcolor: 'background.default' }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Amount</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Branch Location</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Description Details</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {expenses.length > 0 ? (
-                    expenses.map((exp) => (
-                      <TableRow key={exp.id} hover>
-                        <TableCell>{exp.date}</TableCell>
-                        <TableCell sx={{ fontWeight: 'medium', color: 'primary.dark' }}>{exp.category}</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>₱{Number(exp.amount || 0).toFixed(2)}</TableCell>
-                        <TableCell>{exp.branch ? exp.branch.name : <Typography component="span" variant="body2" color="text.disabled">All Branches (Global)</Typography>}</TableCell>
-                        <TableCell>{exp.description || '—'}</TableCell>
-                        <TableCell sx={{ textAlign: 'center' }}>
-                          <Stack direction="row" spacing={1} justifyContent="center">
-                            <IconButton onClick={() => handleOpenEditModal(exp)} color="primary" size="small">
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton onClick={() => handleDeleteExpense(exp.id)} color="error" size="small">
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} sx={{ py: 6, textAlign: 'center' }}>
-                        <Typography color="text.secondary">No expense logs recorded in database.</Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+      {/* Role Banner */}
+      <Alert severity="success" sx={{ mb: 3, borderRadius: 3, border: '1px solid #c8e6c9', bgcolor: '#e8f5e9', color: '#2e7d32' }}>
+        Welcome back, Shop Manager (Admin)!
+      </Alert>
+
+      {/* Card List of Expenses */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : expenses.length > 0 ? (
+        <Grid container spacing={2}>
+          {expenses.map((exp) => (
+            <Grid item xs={12} key={exp.id}>
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  p: 2,
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  {/* Left Column details */}
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                      {exp.category}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      {exp.date} • {exp.branch ? exp.branch.name : 'All Branches (Global)'}
+                    </Typography>
+                    {exp.description && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {exp.description}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {/* Right Column rate and action icons */}
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'extraBold', color: '#c81e1e' }}>
+                      {formatCurrency(exp.amount)}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5}>
+                      <IconButton onClick={() => handleOpenEditModal(exp)} color="default" size="small">
+                        <EditIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteExpense(exp.id)} color="error" size="small">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  </Stack>
+                </Box>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Card sx={{ p: 6, textAlign: 'center', border: '1px dashed #ccc', borderRadius: 3 }}>
+          <Typography color="text.secondary">No expense logs recorded in database.</Typography>
+        </Card>
+      )}
+
+      {/* FAB to Add Expense */}
+      <Fab
+        color="primary"
+        variant="extended"
+        onClick={handleOpenAddModal}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          fontWeight: 'bold',
+          textTransform: 'none',
+          px: 3,
+          boxShadow: '0 4px 14px rgba(11, 83, 148, 0.4)',
+        }}
+      >
+        <AddIcon sx={{ mr: 1 }} />
+        Record Expense
+      </Fab>
 
       {/* Record/Edit Expense Modal */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <ExpenseIcon color="primary" />
-          {editingExpenseId ? 'Modify Expense Entry' : 'Record Expense Entry'}
+          {editingExpenseId ? 'Configure Expense Details' : 'Record Expense Entry'}
         </DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent dividers>
@@ -376,7 +424,7 @@ const Expenses = () => {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 2.5 }}>
-            <Button onClick={handleCloseModal} variant="outlined">
+            <Button onClick={handleCloseModal} color="inherit">
               Cancel
             </Button>
             <Button
@@ -385,7 +433,7 @@ const Expenses = () => {
               variant="contained"
               startIcon={submitting && <CircularProgress size={16} color="inherit" />}
             >
-              {editingExpenseId ? 'Update Entry' : 'Save Entry'}
+              Save Entry
             </Button>
           </DialogActions>
         </Box>
