@@ -8,7 +8,6 @@ import {
   Typography,
   Grid,
   Alert,
-  AlertTitle,
   Divider,
   CircularProgress,
   Chip,
@@ -187,7 +186,7 @@ const AdminDashboard = () => {
         </Alert>
       )}
 
-      {/* Condense Low Stock Alerts into a single-line warning alert */}
+      {/* Horizontally Scrollable Low Stock Alert */}
       {lowStockProducts.length > 0 && (
         <Alert
           severity="warning"
@@ -197,17 +196,48 @@ const AdminDashboard = () => {
             px: 2,
             borderRadius: 2,
             mb: 2,
-            fontSize: '0.8rem',
             border: '1px solid #ffe0b2',
             '& .MuiAlert-message': {
               width: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              display: 'flex',
+              alignItems: 'center',
+              overflow: 'hidden'
             }
           }}
         >
-          <strong>Low Stock Alert:</strong> {lowStockProducts.map(p => `${p.name} (${p.currentStock.toFixed(1)}/${p.minStock.toFixed(1)} ${p.unit})`).join(', ')}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.75rem', color: '#b26a00', whiteSpace: 'nowrap' }}>
+              Low Stock:
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                overflowX: 'auto',
+                py: 0.3,
+                width: '100%',
+                '&::-webkit-scrollbar': { height: 4 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(245,127,23,0.2)', borderRadius: 2 }
+              }}
+            >
+              {lowStockProducts.map(p => (
+                <Chip
+                  key={p.id}
+                  label={`${p.name}: ${p.currentStock.toFixed(1)} / ${p.minStock.toFixed(1)} ${p.unit}`}
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  sx={{
+                    fontWeight: 'bold',
+                    bgcolor: 'white',
+                    fontSize: '0.7rem',
+                    height: 20,
+                    whiteSpace: 'nowrap'
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
         </Alert>
       )}
 
@@ -219,22 +249,22 @@ const AdminDashboard = () => {
             
             {/* CASHFLOW METRIC CARDS - Rendered on a single row (xs={4}) */}
             <Box>
-              <Grid container spacing={1.5}>
+              <Grid container spacing={2}>
                 {/* INCOME */}
                 <Grid item xs={4}>
                   <Card
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: 3,
                       border: '1.5px solid #d4e157',
                       bgcolor: '#f1f8e9',
                       boxShadow: 'none',
                     }}
                   >
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.65rem', display: 'block', lineHeight: 1.2 }}>
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.7rem', display: 'block', lineHeight: 1.2 }}>
                         INCOME
                       </Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mt: 0.2, color: '#33691e', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.2, color: '#33691e', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.totalRevenue)}
                       </Typography>
                     </CardContent>
@@ -245,17 +275,17 @@ const AdminDashboard = () => {
                 <Grid item xs={4}>
                   <Card
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: 3,
                       border: '1.5px solid #f8b4b4',
                       bgcolor: '#fde8e8',
                       boxShadow: 'none',
                     }}
                   >
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.65rem', display: 'block', lineHeight: 1.2 }}>
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.7rem', display: 'block', lineHeight: 1.2 }}>
                         EXPENSES
                       </Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mt: 0.2, color: '#c81e1e', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.2, color: '#c81e1e', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.totalExpenses)}
                       </Typography>
                     </CardContent>
@@ -266,17 +296,17 @@ const AdminDashboard = () => {
                 <Grid item xs={4}>
                   <Card
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: 3,
                       border: '1.5px solid #80cbc4',
                       bgcolor: '#e0f2f1',
                       boxShadow: 'none',
                     }}
                   >
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.65rem', display: 'block', lineHeight: 1.2 }}>
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.7rem', display: 'block', lineHeight: 1.2 }}>
                         PROFIT
                       </Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mt: 0.2, color: '#004d40', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.2, color: '#004d40', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.netProfit)}
                       </Typography>
                     </CardContent>
@@ -285,16 +315,16 @@ const AdminDashboard = () => {
               </Grid>
             </Box>
 
-            {/* CHARTS CONTAINER GRID - Placed side-by-side to save height */}
+            {/* CHARTS CONTAINER GRID - Side-by-side, enlarged to 180px */}
             <Grid container spacing={2}>
               {/* EXPENSES DONUT CHART */}
               <Grid item xs={6}>
-                <Card sx={{ borderRadius: 2, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1 }}>
+                <Card sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY EXPENSES
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 140, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 180, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.expenseCategoryBreakdown && stats.expenseCategoryBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -303,9 +333,9 @@ const AdminDashboard = () => {
                                 data={stats.expenseCategoryBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={42}
-                                outerRadius={56}
-                                paddingAngle={1}
+                                innerRadius={50}
+                                outerRadius={68}
+                                paddingAngle={2}
                                 dataKey="value"
                               >
                                 {stats.expenseCategoryBreakdown.map((entry, index) => (
@@ -316,28 +346,28 @@ const AdminDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.6rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.75rem' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.9rem' }}>
                               {formatCurrency(stats.totalExpenses)}
                             </Typography>
                           </Box>
                         </>
                       ) : (
-                        <Box sx={{ p: 2, border: '1px dashed #ccc', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Box sx={{ p: 3, border: '1px dashed #ccc', borderRadius: '50%', width: 100, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Typography variant="caption" color="text.secondary">No Expenses</Typography>
                         </Box>
                       )}
                     </Box>
                     
-                    {/* Legend list - Compact with custom height limit */}
-                    <Box sx={{ mt: 1, maxHeight: 75, overflowY: 'auto', pr: 0.5 }}>
+                    {/* Legend list - Compact with scroll bar */}
+                    <Box sx={{ mt: 1.5, maxHeight: 85, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.expenseCategoryBreakdown?.map((item, idx) => (
-                        <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.2 }}>
+                        <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
-                            <Typography sx={{ fontWeight: 500, color: 'text.secondary', fontSize: '0.65rem' }}>{item.name}</Typography>
+                            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
+                            <Typography sx={{ fontWeight: 500, color: 'text.secondary', fontSize: '0.7rem' }}>{item.name}</Typography>
                           </Stack>
-                          <Typography sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}>
+                          <Typography sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
                             {formatCurrency(item.value)}
                           </Typography>
                         </Box>
@@ -349,12 +379,12 @@ const AdminDashboard = () => {
 
               {/* INCOME DONUT CHART */}
               <Grid item xs={6}>
-                <Card sx={{ borderRadius: 2, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1 }}>
+                <Card sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'none' }}>
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY INCOME BY SERVICE
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 140, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 180, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.incomeServiceBreakdown && stats.incomeServiceBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -363,9 +393,9 @@ const AdminDashboard = () => {
                                 data={stats.incomeServiceBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={42}
-                                outerRadius={56}
-                                paddingAngle={1}
+                                innerRadius={50}
+                                outerRadius={68}
+                                paddingAngle={2}
                                 dataKey="value"
                               >
                                 {stats.incomeServiceBreakdown.map((entry, index) => (
@@ -376,28 +406,28 @@ const AdminDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.6rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.75rem' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.9rem' }}>
                               {formatCurrency(stats.totalRevenue)}
                             </Typography>
                           </Box>
                         </>
                       ) : (
-                        <Box sx={{ p: 2, border: '1px dashed #ccc', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Box sx={{ p: 3, border: '1px dashed #ccc', borderRadius: '50%', width: 100, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Typography variant="caption" color="text.secondary">No Services</Typography>
                         </Box>
                       )}
                     </Box>
                     
-                    {/* Legend list - Compact with custom height limit */}
-                    <Box sx={{ mt: 1, maxHeight: 75, overflowY: 'auto', pr: 0.5 }}>
+                    {/* Legend list - Compact with scroll bar */}
+                    <Box sx={{ mt: 1.5, maxHeight: 85, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.incomeServiceBreakdown?.map((item, idx) => (
-                        <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.2 }}>
+                        <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
-                            <Typography sx={{ fontWeight: 500, color: 'text.secondary', fontSize: '0.65rem' }}>{item.name}</Typography>
+                            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
+                            <Typography sx={{ fontWeight: 500, color: 'text.secondary', fontSize: '0.7rem' }}>{item.name}</Typography>
                           </Stack>
-                          <Typography sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}>
+                          <Typography sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
                             {formatCurrency(item.value)}
                           </Typography>
                         </Box>
@@ -410,44 +440,44 @@ const AdminDashboard = () => {
           </Stack>
         </Grid>
 
-        {/* Right Column: Tabbed Tables - Configured to align height with left column */}
+        {/* Right Column: Tabbed Tables - Height scaled to align with left column */}
         <Grid item xs={12} lg={4}>
-          <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 'none', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-            <CardContent sx={{ p: 1.5, display: 'flex', flexDirection: 'column', height: '100%', '&:last-child': { pb: 1.5 } }}>
+          <Card sx={{ height: '100%', borderRadius: 3, boxShadow: 'none', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+            <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%', '&:last-child': { pb: 2 } }}>
               <Tabs
                 value={tableTab}
                 onChange={(e, val) => setTableTab(val)}
                 indicatorColor="primary"
                 textColor="primary"
                 variant="fullWidth"
-                sx={{ borderBottom: 1, borderColor: 'divider', mb: 1, minHeight: 32, '& .MuiTab-root': { py: 0.5, minHeight: 32, fontSize: '0.7rem', fontWeight: 'bold' } }}
+                sx={{ borderBottom: 1, borderColor: 'divider', mb: 1.5, minHeight: 36, '& .MuiTab-root': { py: 0.5, minHeight: 36, fontSize: '0.75rem', fontWeight: 'bold' } }}
               >
                 <Tab label="Income By Date" />
                 <Tab label="Expenses" />
                 <Tab label="By Service" />
               </Tabs>
 
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 290 }}>
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 335 }}>
                 {tableTab === 0 && (
                   <TableContainer>
                     <Table stickyHeader size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.7rem', py: 0.8 }}>Date</TableCell>
-                          <TableCell align="right" sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.7rem', py: 0.8 }}>Amount</TableCell>
+                          <TableCell sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Date</TableCell>
+                          <TableCell align="right" sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Amount</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {stats?.incomeByDate && stats.incomeByDate.length > 0 ? (
                           stats.incomeByDate.map((row) => (
                             <TableRow key={row.name} hover>
-                              <TableCell sx={{ fontSize: '0.75rem', py: 0.6 }}>{row.name}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem', py: 0.6 }}>{formatCurrency(row.value)}</TableCell>
+                              <TableCell sx={{ fontSize: '0.8rem', py: 0.8 }}>{row.name}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.8rem', py: 0.8 }}>{formatCurrency(row.value)}</TableCell>
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={2} align="center" sx={{ py: 2, color: 'text.secondary', fontSize: '0.75rem' }}>
+                            <TableCell colSpan={2} align="center" sx={{ py: 3, color: 'text.secondary', fontSize: '0.8rem' }}>
                               No transactions recorded.
                             </TableCell>
                           </TableRow>
@@ -462,23 +492,23 @@ const AdminDashboard = () => {
                     <Table stickyHeader size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ bgcolor: '#ffe5e5', color: '#b71c1c', fontWeight: 'bold', fontSize: '0.7rem', py: 0.8 }}>Categories</TableCell>
-                          <TableCell align="right" sx={{ bgcolor: '#ffe5e5', color: '#b71c1c', fontWeight: 'bold', fontSize: '0.7rem', py: 0.8 }}>Amount</TableCell>
+                          <TableCell sx={{ bgcolor: '#ffe5e5', color: '#b71c1c', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Categories</TableCell>
+                          <TableCell align="right" sx={{ bgcolor: '#ffe5e5', color: '#b71c1c', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Amount</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {stats?.expenseByCategory && stats.expenseByCategory.length > 0 ? (
                           stats.expenseByCategory.map((row) => (
                             <TableRow key={row.name} hover>
-                              <TableCell sx={{ fontSize: '0.75rem', py: 0.6 }}>{row.name}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem', py: 0.6, color: row.value > 0 ? '#b71c1c' : 'text.primary' }}>
+                              <TableCell sx={{ fontSize: '0.8rem', py: 0.8 }}>{row.name}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.8rem', py: 0.8, color: row.value > 0 ? '#b71c1c' : 'text.primary' }}>
                                 {formatCurrency(row.value)}
                               </TableCell>
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={2} align="center" sx={{ py: 2, color: 'text.secondary', fontSize: '0.75rem' }}>
+                            <TableCell colSpan={2} align="center" sx={{ py: 3, color: 'text.secondary', fontSize: '0.8rem' }}>
                               No expenses registered.
                             </TableCell>
                           </TableRow>
@@ -493,23 +523,23 @@ const AdminDashboard = () => {
                     <Table stickyHeader size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ bgcolor: '#e3f2fd', color: '#0d47a1', fontWeight: 'bold', fontSize: '0.7rem', py: 0.8 }}>Services</TableCell>
-                          <TableCell align="right" sx={{ bgcolor: '#e3f2fd', color: '#0d47a1', fontWeight: 'bold', fontSize: '0.7rem', py: 0.8 }}>Amount</TableCell>
+                          <TableCell sx={{ bgcolor: '#e3f2fd', color: '#0d47a1', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Services</TableCell>
+                          <TableCell align="right" sx={{ bgcolor: '#e3f2fd', color: '#0d47a1', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Amount</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {stats?.incomeByService && stats.incomeByService.length > 0 ? (
                           stats.incomeByService.map((row) => (
                             <TableRow key={row.name} hover>
-                              <TableCell sx={{ fontSize: '0.75rem', py: 0.6 }}>{row.name}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem', py: 0.6, color: row.value > 0 ? '#0d47a1' : 'text.primary' }}>
+                              <TableCell sx={{ fontSize: '0.8rem', py: 0.8 }}>{row.name}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.8rem', py: 0.8, color: row.value > 0 ? '#0d47a1' : 'text.primary' }}>
                                 {formatCurrency(row.value)}
                               </TableCell>
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={2} align="center" sx={{ py: 2, color: 'text.secondary', fontSize: '0.75rem' }}>
+                            <TableCell colSpan={2} align="center" sx={{ py: 3, color: 'text.secondary', fontSize: '0.8rem' }}>
                               No service revenues recorded.
                             </TableCell>
                           </TableRow>
