@@ -316,7 +316,7 @@ const EmployeeDashboard = () => {
           <ul style={{ margin: '4px 0 0 20px', padding: 0 }}>
             {lowStockWarnings.map(p => (
               <li key={p.id} style={{ fontSize: '0.85rem' }}>
-                <strong>{p.name}</strong> has only <strong>{p.quantity.toFixed(2)} {p.unit}</strong> left! (Reorder point: {p.reorderPoint} {p.unit})
+                <strong>{p.name}</strong> has only <strong>{(p.currentStock ?? 0).toFixed(1)} {p.unit}</strong> left! (Reorder point: {p.minStock ?? 20.0} {p.unit})
               </li>
             ))}
           </ul>
