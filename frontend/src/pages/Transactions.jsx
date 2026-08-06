@@ -41,6 +41,28 @@ import {
   CheckCircle as SuccessIcon,
 } from '@mui/icons-material';
 
+const calculateDurationInShop = (createdAtStr, pickedUpAtStr) => {
+  if (!createdAtStr) return 'At shop';
+  const createdTime = new Date(createdAtStr).getTime();
+  if (isNaN(createdTime) || createdTime <= 0) return 'At shop';
+  
+  const endTime = pickedUpAtStr ? new Date(pickedUpAtStr).getTime() : Date.now();
+  const diffMs = endTime - createdTime;
+  if (diffMs < 0) return 'Just added';
+  
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays > 0) {
+    return `${diffDays}d ${diffHours % 24}h`;
+  } else if (diffHours > 0) {
+    return `${diffHours}h ${diffMins % 60}m`;
+  } else {
+    return `${diffMins}m`;
+  }
+};
+
 const Transactions = () => {
   const { user, isAdmin } = useAuth();
   const [transactions, setTransactions] = useState([]);
@@ -223,6 +245,19 @@ const Transactions = () => {
     }
   };
 
+  const handleMarkAsPickedUp = async (id) => {
+    if (!window.confirm('Are you sure you want to mark this transaction as picked up?')) {
+      return;
+    }
+    try {
+      await api.put(`/api/transactions/${id}/pickup`);
+      loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to mark transaction as picked up.');
+      console.error(err);
+    }
+  };
+
   const getRemainingSoap = () => {
     if (!selectedProductId || !soapUsedQty) return null;
     const prod = products.find(p => p.id === selectedProductId);
@@ -346,6 +381,8 @@ const Transactions = () => {
                     <TableCell sx={{ fontWeight: 'bold' }}>Total Price</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Soap Used</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Logged By</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Pickup Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -399,11 +436,42 @@ const Transactions = () => {
                               </Typography>
                             )}
                           </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={tx.pickedUp ? `Picked Up (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `In Shop (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
+                              color={tx.pickedUp ? 'success' : 'warning'}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                              <IconButton
+                                onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
+                                color="primary"
+                                size="small"
+                                title="View/Print Receipt"
+                              >
+                                <PrintIcon />
+                              </IconButton>
+                              {!tx.pickedUp && (
+                                <IconButton
+                                  onClick={() => handleMarkAsPickedUp(tx.id)}
+                                  color="success"
+                                  size="small"
+                                  title="Mark as Picked Up"
+                                >
+                                  <SuccessIcon />
+                                </IconButton>
+                              )}
+                            </Stack>
+                          </TableCell>
                         </TableRow>
                       ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
+                      <TableCell colSpan={12} align="center" sx={{ py: 6 }}>
                         <Typography color="text.secondary">No laundry transactions found.</Typography>
                       </TableCell>
                     </TableRow>
@@ -667,11 +735,11 @@ const Transactions = () => {
                 <Typography variant="body2" color="text.secondary">Remaining Soap Stock After Wash:</Typography>
                 {calculatedRemainingSoap !== null ? (
                   <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: 'bold',
-                      color: calculatedRemainingSoap < 0 ? 'error.main' : 'success.main',
-                    }}
+                     variant="subtitle1"
+                     sx={{
+                       fontWeight: 'bold',
+                       color: calculatedRemainingSoap < 0 ? 'error.main' : 'success.main',
+                     }}
                   >
                     {calculatedRemainingSoap.toFixed(2)} {selectedProductDetails?.unit}
                   </Typography>
@@ -852,7 +920,7 @@ const Transactions = () => {
       <Dialog open={openReceiptModal} onClose={() => setOpenReceiptModal(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <SuccessIcon color="success" />
-          Wash Recorded Successfully
+          Transaction Details & Invoice
         </DialogTitle>
         <DialogContent dividers>
           {/* Printable Receipt Area */}
@@ -885,10 +953,19 @@ const Transactions = () => {
               <Typography variant="body2">{receiptTx?.customerName || 'Anonymous'}</Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Date</Typography>
               <Typography variant="body2">
                 {receiptTx?.date ? new Date(receiptTx.date).toLocaleDateString('en-US') : new Date().toLocaleDateString('en-US')}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Pickup Status</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: receiptTx?.pickedUp ? 'success.main' : 'warning.main' }}>
+                {receiptTx?.pickedUp 
+                  ? `Picked Up (${calculateDurationInShop(receiptTx.createdAt, receiptTx.pickedUpAt)})` 
+                  : `In Shop (${calculateDurationInShop(receiptTx?.createdAt, receiptTx?.pickedUpAt)})`}
               </Typography>
             </Box>
 
@@ -966,6 +1043,19 @@ const Transactions = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
+          {!receiptTx?.pickedUp && (
+            <Button
+              startIcon={<SuccessIcon />}
+              variant="contained"
+              color="success"
+              onClick={async () => {
+                await handleMarkAsPickedUp(receiptTx.id);
+                setOpenReceiptModal(false);
+              }}
+            >
+              Mark as Picked Up
+            </Button>
+          )}
           <Button startIcon={<PrintIcon />} variant="outlined" onClick={handlePrintReceipt}>
             Print Receipt
           </Button>

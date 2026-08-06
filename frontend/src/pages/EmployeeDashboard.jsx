@@ -28,6 +28,7 @@ import {
   ListItem,
   ListItemText,
   MenuItem,
+  IconButton,
 } from '@mui/material';
 import {
   LocalLaundryService as LaundryIcon,
@@ -38,6 +39,28 @@ import {
   CheckCircle as CheckIcon,
   FitnessCenter as WeightIcon,
 } from '@mui/icons-material';
+
+const calculateDurationInShop = (createdAtStr, pickedUpAtStr) => {
+  if (!createdAtStr) return 'At shop';
+  const createdTime = new Date(createdAtStr).getTime();
+  if (isNaN(createdTime) || createdTime <= 0) return 'At shop';
+  
+  const endTime = pickedUpAtStr ? new Date(pickedUpAtStr).getTime() : Date.now();
+  const diffMs = endTime - createdTime;
+  if (diffMs < 0) return 'Just added';
+  
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays > 0) {
+    return `${diffDays}d ${diffHours % 24}h`;
+  } else if (diffHours > 0) {
+    return `${diffHours}h ${diffMins % 60}m`;
+  } else {
+    return `${diffMins}m`;
+  }
+};
 
 const EmployeeDashboard = () => {
   const { user, isAdmin } = useAuth();
@@ -226,6 +249,20 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handleMarkAsPickedUp = async (id) => {
+    if (!window.confirm('Are you sure you want to mark this transaction as picked up?')) {
+      return;
+    }
+    try {
+      await api.put(`/api/transactions/${id}/pickup`);
+      await fetchRecentTransactions();
+      await fetchStats();
+    } catch (err) {
+      console.error('Failed to mark transaction as picked up.', err);
+      alert(err.response?.data?.message || 'Failed to mark transaction as picked up.');
+    }
+  };
+
   const handlePrintReceipt = () => {
     const printContent = document.getElementById('printable-dashboard-receipt');
     const originalContent = document.body.innerHTML;
@@ -255,202 +292,109 @@ const EmployeeDashboard = () => {
     );
   }
 
+  const lowStockWarnings = stats?.soapStocks?.filter(p => p.isLow) || [];
+
   return (
-    <Box sx={{ flexGrow: 1 }}>
-
-      {/* Company Branding & Quick Action Hub */}
-      <Card
-        sx={{
-          mb: 4,
-          p: 4,
-          borderRadius: 4,
-          textAlign: 'center',
-          background: 'linear-gradient(135deg, #0b5394 0%, #073763 100%)',
-          color: 'white',
-          boxShadow: '0 8px 32px rgba(11, 83, 148, 0.15)',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: '-20%',
-            right: '-10%',
-            width: '250px',
-            height: '250px',
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.05)',
-            filter: 'blur(30px)',
-          },
-        }}
-      >
-        <Typography variant="h3" sx={{ fontWeight: '800', letterSpacing: '-0.5px', mb: 1, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-          AquaClean Laundry Services
+    <Box sx={{ flexGrow: 1, pb: 4 }}>
+      {/* Welcome Banner */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+          Welcome back, {user?.fullName}!
         </Typography>
-        <Typography variant="subtitle1" sx={{ opacity: 0.85, mb: 3, fontWeight: 'medium' }}>
-          Terminal Portal & Employee Workspace
+        <Typography variant="body2" color="text.secondary">
+          Terminal Console — {user?.branch?.name || 'Shared Branch / Global Headquarter'}
         </Typography>
-        
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center">
-          <Button
-            variant="contained"
-            onClick={() => {
-              const element = document.getElementById('record-transaction-section');
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontWeight: 'bold',
-              borderRadius: 3,
-              bgcolor: '#00bcd4',
-              color: 'white',
-              '&:hover': { bgcolor: '#00acc1' },
-              boxShadow: '0 4px 14px rgba(0, 188, 212, 0.4)',
-            }}
-          >
-            Record Transaction
-          </Button>
-          
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/transactions')}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontWeight: 'bold',
-              borderRadius: 3,
-              borderColor: 'rgba(255,255,255,0.7)',
-              color: 'white',
-              '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
-            }}
-          >
-            Transactions
-          </Button>
+      </Box>
 
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/services')}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontWeight: 'bold',
-              borderRadius: 3,
-              borderColor: 'rgba(255,255,255,0.7)',
-              color: 'white',
-              '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
-            }}
-          >
-            Services & Rates
-          </Button>
-        </Stack>
-      </Card>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+      {/* Critical Stock Alerts */}
+      {lowStockWarnings.length > 0 && (
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 3, border: '1px solid #ffe0b2' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarningIcon />
+            Low Stock Warnings detected
+          </Typography>
+          <ul style={{ margin: '4px 0 0 20px', padding: 0 }}>
+            {lowStockWarnings.map(p => (
+              <li key={p.id} style={{ fontSize: '0.85rem' }}>
+                <strong>{p.name}</strong> has only <strong>{p.quantity.toFixed(2)} {p.unit}</strong> left! (Reorder point: {p.reorderPoint} {p.unit})
+              </li>
+            ))}
+          </ul>
         </Alert>
       )}
 
-      {/* EMPLOYEE (USER) VIEW WORKSPACE */}
-      <Grid container spacing={4} id="record-transaction-section">
-        {/* Quick Entry Form Card */}
+      {/* Dashboard Panels */}
+      <Grid container spacing={4}>
+        {/* Quick Entry Form Column */}
         <Grid item xs={12} md={7}>
-          <Card sx={{ p: 1 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <AddIcon color="primary" />
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                  Record New Laundry Wash
-                </Typography>
-              </Box>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LaundryIcon color="primary" />
+                Quick Laundry Wash Entry
+              </Typography>
 
-              {formSuccess && (
-                <Alert severity="success" icon={<SuccessIcon />} sx={{ mb: 3, borderRadius: 2 }}>
-                  {formSuccess}
-                </Alert>
-              )}
+              {formSuccess && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{formSuccess}</Alert>}
+              {formError && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{formError}</Alert>}
 
-              {formError && (
-                <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                  {formError}
-                </Alert>
-              )}
-
-              <Box component="form" onSubmit={handleQuickSubmit} noValidate>
+              <Box component="form" onSubmit={handleQuickSubmit}>
                 <Stack spacing={3}>
-                  {/* Customer Name & Weight */}
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                    <TextField
-                      fullWidth
-                      label="Customer's Name (Optional)"
-                      variant="outlined"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Enter customer name..."
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                    <TextField
-                      required
-                      fullWidth
-                      type="number"
-                      label="Weight (kg)"
-                      variant="outlined"
-                      value={weightKg}
-                      onChange={(e) => setWeightKg(e.target.value)}
-                      placeholder="0.00"
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">kg</InputAdornment>,
-                        inputProps: { min: "0.01", step: "0.01" }
-                      }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                  </Stack>
+                  <TextField
+                    fullWidth
+                    label="Customer Name (Optional)"
+                    placeholder="e.g. Walk-in Customer"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
 
-                  {/* Machine Selection Section */}
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'semibold' }}>
-                      Washing Machine Unit *
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
+                      Select Washing Machine *
                     </Typography>
-                    <Grid container spacing={1.5}>
-                      {['Machine 1', 'Machine 2', 'Machine 3', 'Machine 4'].map((mach) => {
-                        const isSelected = machineNumber === mach;
-                        return (
-                          <Grid item xs={6} sm={3} key={mach}>
-                            <Card
-                              variant="outlined"
-                              onClick={() => setMachineNumber(mach)}
-                              sx={{
-                                cursor: 'pointer',
-                                p: 1.5,
-                                textAlign: 'center',
-                                borderRadius: 2.5,
-                                borderColor: isSelected ? 'primary.main' : 'divider',
-                                borderWidth: isSelected ? '2px' : '1px',
-                                bgcolor: isSelected ? 'rgba(11, 83, 148, 0.04)' : 'background.paper',
-                                boxShadow: isSelected ? '0 4px 12px rgba(11, 83, 148, 0.1)' : 'none',
-                                transition: 'all 0.2s ease-in-out',
-                                '&:hover': {
-                                  borderColor: 'primary.light',
-                                  bgcolor: 'rgba(11, 83, 148, 0.02)',
-                                }
-                              }}
-                            >
-                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: isSelected ? 'primary.main' : 'text.primary' }}>
-                                {mach}
-                              </Typography>
-                            </Card>
-                          </Grid>
-                        );
-                      })}
-                    </Grid>
+                    <ToggleButtonGroup
+                      value={machineNumber}
+                      exclusive
+                      onChange={(e, val) => { if (val) setMachineNumber(val); }}
+                      fullWidth
+                      color="primary"
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        '& .MuiToggleButton-root': {
+                          borderRadius: '8px !important',
+                          border: '1px solid !important',
+                          borderColor: 'divider',
+                          flex: '1 1 45%',
+                          fontWeight: 'bold',
+                          py: 1.25,
+                        }
+                      }}
+                    >
+                      <ToggleButton value="Machine 1">Machine 1</ToggleButton>
+                      <ToggleButton value="Machine 2">Machine 2</ToggleButton>
+                      <ToggleButton value="Machine 3">Machine 3</ToggleButton>
+                      <ToggleButton value="Machine 4">Machine 4</ToggleButton>
+                    </ToggleButtonGroup>
                   </Box>
 
-                  {/* Select Services & Quantities trigger */}
-                  <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2.5 }}>
+                  <TextField
+                    required
+                    fullWidth
+                    type="number"
+                    label="Wash Weight (kg)"
+                    placeholder="0.00"
+                    value={weightKg}
+                    onChange={(e) => setWeightKg(e.target.value)}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">kg</InputAdornment>,
+                      inputProps: { min: "0.01", step: "0.01" }
+                    }}
+                  />
+
+                  <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
-                      Select Services & Quantities *
+                      Add Services & Rates *
                     </Typography>
                     <Button
                       variant="outlined"
@@ -460,8 +404,9 @@ const EmployeeDashboard = () => {
                     >
                       Choose Services ({Object.keys(selectedServices).length} Selected)
                     </Button>
+                    
                     {Object.keys(selectedServices).length > 0 && (
-                      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, display: 'flex', flexWrap: 'wrap', gap: 1, bgcolor: '#f8fafc' }}>
+                      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {Object.entries(selectedServices).map(([id, qty]) => {
                           const serviceId = Number(id);
                           const service = servicesList.find(s => s.id === serviceId);
@@ -487,13 +432,35 @@ const EmployeeDashboard = () => {
                     )}
                   </Box>
 
-                  {/* Soap Resource Allocation Box */}
-                  <Card variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 3, border: '1px dashed', borderColor: 'primary.light' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <WeightIcon sx={{ fontSize: 18 }} />
-                      Soap Resource Consumables
+                  <Box sx={{ gridColumn: 'span 2' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
+                      Mode of Payment *
                     </Typography>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <ToggleButtonGroup
+                      value={paymentMethod}
+                      exclusive
+                      onChange={(e, val) => { if (val) setPaymentMethod(val); }}
+                      fullWidth
+                      color="primary"
+                      sx={{
+                        display: 'flex',
+                        gap: 1,
+                        '& .MuiToggleButton-root': {
+                          borderRadius: '8px !important',
+                          border: '1px solid !important',
+                          borderColor: 'divider',
+                          fontWeight: 'bold',
+                          py: 1.5,
+                        }
+                      }}
+                    >
+                      <ToggleButton value="Cash">Cash</ToggleButton>
+                      <ToggleButton value="Gcash">GCash</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         required
                         fullWidth
@@ -501,11 +468,10 @@ const EmployeeDashboard = () => {
                         label="Soap Product Used"
                         value={selectedProductId}
                         onChange={(e) => setSelectedProductId(Number(e.target.value))}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         helperText={
                           selectedProductDetails
                             ? `Available: ${selectedProductDetails.quantity.toFixed(2)} ${selectedProductDetails.unit}`
-                            : 'Select soap to verify stock'
+                            : 'Select product'
                         }
                       >
                         {products.map((p) => (
@@ -514,11 +480,13 @@ const EmployeeDashboard = () => {
                           </MenuItem>
                         ))}
                       </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         required
                         fullWidth
                         type="number"
-                        label="Amount of Soap Used"
+                        label="Soap Amount Utilized"
                         value={soapUsedQty}
                         onChange={(e) => setSoapUsedQty(e.target.value)}
                         placeholder="0.00"
@@ -530,73 +498,22 @@ const EmployeeDashboard = () => {
                           ),
                           inputProps: { min: "0.00", step: "0.01" }
                         }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
-                    </Stack>
-                    
-                    {/* Live stock forecast badge inside soap card */}
-                    {selectedProductDetails && (
-                      <Box
-                        sx={{
-                          mt: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          p: 1.5,
-                          borderRadius: 2,
-                          border: '1px solid',
-                          borderColor: calculatedRemainingSoap !== null && calculatedRemainingSoap < 0 ? 'error.light' : 'success.light',
-                          bgcolor: calculatedRemainingSoap !== null && calculatedRemainingSoap < 0 ? 'rgba(211, 47, 47, 0.04)' : 'rgba(46, 125, 50, 0.04)',
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ fontWeight: 'semibold', color: calculatedRemainingSoap < 0 ? 'error.dark' : 'success.dark' }}>
-                          Remaining Stock Forecast:
-                        </Typography>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: 'bold',
-                            color: calculatedRemainingSoap < 0 ? 'error.main' : 'success.main',
-                          }}
-                        >
-                          {calculatedRemainingSoap !== null ? `${calculatedRemainingSoap.toFixed(2)} ${selectedProductDetails.unit}` : '—'}
-                        </Typography>
-                      </Box>
+                    </Grid>
+                  </Grid>
+
+                  {/* Soap level display */}
+                  <Paper variant="outlined" sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.default' }}>
+                    <Typography variant="body2" color="text.secondary">Projected Soap Balance Stock:</Typography>
+                    {calculatedRemainingSoap !== null ? (
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: calculatedRemainingSoap < 0 ? 'error.main' : 'success.main' }}>
+                        {calculatedRemainingSoap.toFixed(2)} {selectedProductDetails?.unit}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.disabled">—</Typography>
                     )}
-                  </Card>
+                  </Paper>
 
-                  {/* Mode of Payment */}
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'semibold' }}>
-                      Mode of Payment *
-                    </Typography>
-                    <ToggleButtonGroup
-                      value={paymentMethod}
-                      exclusive
-                      onChange={(e, val) => { if (val) setPaymentMethod(val); }}
-                      fullWidth
-                      color="primary"
-                      sx={{
-                        display: 'flex',
-                        gap: 1.5,
-                        '& .MuiToggleButton-root': {
-                          borderRadius: '10px !important',
-                          border: '1px solid !important',
-                          borderColor: 'divider',
-                          fontWeight: 'bold',
-                          py: 1.5,
-                          flex: 1,
-                        }
-                      }}
-                    >
-                      <ToggleButton value="Cash">Cash</ToggleButton>
-                      <ToggleButton value="Gcash">
-                        GCash
-                      </ToggleButton>
-                    </ToggleButtonGroup>
-                  </Box>
-
-                  {/* GCash Verification */}
                   {paymentMethod === 'Gcash' && (
                     <Card variant="outlined" sx={{ p: 2, border: '1px solid #90caf9', bgcolor: '#e3f2fd', borderRadius: 3 }}>
                       <Stack spacing={2} sx={{ alignItems: 'center' }}>
@@ -754,7 +671,35 @@ const EmployeeDashboard = () => {
                   <List>
                     {recentTransactions.map((tx, idx) => (
                       <React.Fragment key={tx.id}>
-                        <ListItem sx={{ px: 0, py: 1.5 }}>
+                        <ListItem
+                          sx={{ px: 0, py: 1.5 }}
+                          secondaryAction={
+                            <Stack direction="row" spacing={0.5}>
+                              <IconButton
+                                edge="end"
+                                aria-label="print"
+                                onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
+                                color="primary"
+                                size="small"
+                                title="View/Print Receipt"
+                              >
+                                <PrintIcon />
+                              </IconButton>
+                              {!tx.pickedUp && (
+                                <IconButton
+                                  edge="end"
+                                  aria-label="pickup"
+                                  onClick={() => handleMarkAsPickedUp(tx.id)}
+                                  color="success"
+                                  size="small"
+                                  title="Mark as Picked Up"
+                                >
+                                  <SuccessIcon />
+                                </IconButton>
+                              )}
+                            </Stack>
+                          }
+                        >
                           <ListItemText
                             primary={tx.customerName || 'Anonymous Customer'}
                             primaryTypographyProps={{ fontWeight: 600 }}
@@ -763,16 +708,23 @@ const EmployeeDashboard = () => {
                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                                   {tx.date} • {tx.machineNumber} • {tx.weightKg} kg washed • {tx.soapUsedQty} {tx.soapProduct?.unit} soap used
                                 </Typography>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
                                   <Chip
                                     label={tx.paymentMethod === 'Gcash' ? `GCash (${tx.referenceNumber || '—'})` : 'Cash'}
                                     size="small"
                                     sx={{ height: 20, fontSize: '0.7rem' }}
                                   />
-                                  {tx.services?.map(item => (
+                                  <Chip
+                                    label={tx.pickedUp ? `Picked Up (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `In Shop (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
+                                    color={tx.pickedUp ? 'success' : 'warning'}
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                                  />
+                                  {tx.serviceItems?.map((item, idx) => (
                                     <Chip
-                                      key={item.id}
-                                      label={`${item.service?.name} (x${item.quantity})`}
+                                      key={idx}
+                                      label={`${item.laundryService?.name || 'Service'} (x${item.quantity})`}
                                       size="small"
                                       variant="outlined"
                                       sx={{ height: 20, fontSize: '0.7rem' }}
@@ -800,7 +752,7 @@ const EmployeeDashboard = () => {
 
       {/* Printable Receipt Dialog */}
       <Dialog open={openReceiptModal} onClose={() => setOpenReceiptModal(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Transaction Completed</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Transaction Summary & Invoice</DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
           {/* Printable Ticket Receipt Layout */}
           <Box id="printable-dashboard-receipt" sx={{ p: 3, fontFamily: 'monospace', color: 'black', bgcolor: 'white' }}>
@@ -812,19 +764,25 @@ const EmployeeDashboard = () => {
             </Box>
 
             <Box sx={{ mb: 2 }}>
+              <Typography variant="body2">Invoice #: T-00{receiptTx?.id}</Typography>
               <Typography variant="body2">Date: {receiptTx?.date}</Typography>
               <Typography variant="body2">Customer: {receiptTx?.customerName || 'Walk-in'}</Typography>
               <Typography variant="body2">Machine: {receiptTx?.machineNumber}</Typography>
               <Typography variant="body2">Weight: {receiptTx?.weightKg} kg</Typography>
               <Typography variant="body2">Soap Used: {receiptTx?.soapUsedQty} {receiptTx?.soapProduct?.unit || 'unit'}</Typography>
+              <Typography variant="body2">
+                Pickup Status: {receiptTx?.pickedUp 
+                  ? `Picked Up (${calculateDurationInShop(receiptTx.createdAt, receiptTx.pickedUpAt)})` 
+                  : `In Shop (${calculateDurationInShop(receiptTx?.createdAt, receiptTx?.pickedUpAt)})`}
+              </Typography>
             </Box>
 
             <Divider sx={{ borderStyle: 'dashed', my: 1.5, borderColor: 'black' }} />
             <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>SERVICES CHARGED:</Typography>
             <Stack spacing={0.5}>
-              {receiptTx?.services?.map((item) => (
-                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">{item.service?.name} x{item.quantity}</Typography>
+              {receiptTx?.serviceItems?.map((item, idx) => (
+                <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{item.laundryService?.name} x{item.quantity}</Typography>
                   <Typography variant="body2">₱{(item.priceAtTransaction * item.quantity).toFixed(2)}</Typography>
                 </Box>
               ))}
@@ -839,7 +797,7 @@ const EmployeeDashboard = () => {
               </Typography>
             </Box>
 
-            <Divider sx={{ borderStyle: 'dashed', my: 2 }} />
+            <Divider sx={{ borderStyle: 'dashed', my: 2, borderColor: 'black' }} />
 
             <Box sx={{ mt: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Payment Details</Typography>
@@ -863,6 +821,19 @@ const EmployeeDashboard = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
+          {!receiptTx?.pickedUp && (
+            <Button
+              startIcon={<SuccessIcon />}
+              variant="contained"
+              color="success"
+              onClick={async () => {
+                await handleMarkAsPickedUp(receiptTx.id);
+                setOpenReceiptModal(false);
+              }}
+            >
+              Mark as Picked Up
+            </Button>
+          )}
           <Button startIcon={<PrintIcon />} variant="outlined" onClick={handlePrintReceipt}>
             Print Receipt
           </Button>
@@ -899,7 +870,7 @@ const EmployeeDashboard = () => {
                           checked={isChecked}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedServices(prev => ({ ...prev, [service.id]: qty }));
+                              setSelectedServices(prev => ({ ...prev, [service.id]: 1 }));
                             } else {
                               setSelectedServices(prev => {
                                 const updated = { ...prev };
@@ -915,10 +886,11 @@ const EmployeeDashboard = () => {
                             {service.name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Standard: ₱{service.rate != null ? Number(service.rate).toFixed(2) : '0.00'} / {service.unit}
+                            ₱{service.rate} / {service.unit}
                           </Typography>
                         </Box>
                       </Box>
+                      
                       {isChecked && (
                         <TextField
                           type="number"
@@ -955,11 +927,11 @@ const EmployeeDashboard = () => {
                               startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                               inputProps: { min: "0", step: "0.5" }
                             }}
-                            sx={{ width: 140 }}
+                            sx={{ width: 120 }}
                           />
                         ) : (
                           <Typography variant="body2" color="text.secondary">
-                            Rate: ₱{currentRate != null ? Number(currentRate).toFixed(2) : '0.00'}
+                            Rate: ₱{currentRate}
                           </Typography>
                         )}
                         <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
@@ -972,9 +944,9 @@ const EmployeeDashboard = () => {
               })}
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenServicesDialog(false)} variant="contained" fullWidth sx={{ fontWeight: 'bold' }}>
-            Done
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button variant="contained" onClick={() => setOpenServicesDialog(false)}>
+            Apply & Close
           </Button>
         </DialogActions>
       </Dialog>
