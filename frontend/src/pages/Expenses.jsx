@@ -19,6 +19,7 @@ import {
   InputAdornment,
   Grid,
   Fab,
+  Divider,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -270,47 +271,58 @@ const Expenses = () => {
           <CircularProgress />
         </Box>
       ) : expenses.length > 0 ? (
-        <Grid container spacing={2}>
+        <Grid container spacing={2.5}>
           {expenses.map((exp) => (
-            <Grid item xs={12} key={exp.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={exp.id}>
               <Card
                 sx={{
-                  borderRadius: 3,
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                  borderRadius: 3.5,
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
                   border: '1px solid rgba(0,0,0,0.05)',
-                  p: 2,
+                  borderLeft: '4px solid #e11d48',
+                  p: 2.5,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 10px 25px rgba(225, 29, 72, 0.08)',
+                  }
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  {/* Left Column details */}
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                      {exp.category}
+                {/* Upper details */}
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1rem', mb: 0.5 }}>
+                    {exp.category}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    {exp.date} • <strong>{exp.branch ? exp.branch.name : 'Global'}</strong>
+                  </Typography>
+                  {exp.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem', fontStyle: 'italic', bgcolor: 'rgba(0,0,0,0.02)', p: 1, borderRadius: 1.5 }}>
+                      {exp.description}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      {exp.date} • {exp.branch ? exp.branch.name : 'All Branches (Global)'}
-                    </Typography>
-                    {exp.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {exp.description}
-                      </Typography>
-                    )}
-                  </Box>
+                  )}
+                </Box>
 
-                  {/* Right Column rate and action icons */}
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'extraBold', color: '#c81e1e' }}>
+                {/* Bottom amount and actions */}
+                <Box sx={{ mt: 'auto' }}>
+                  <Divider sx={{ my: 1.5, borderColor: 'rgba(0,0,0,0.06)' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'extraBold', color: '#c81e1e', fontSize: '1.15rem' }}>
                       {formatCurrency(exp.amount)}
                     </Typography>
                     <Stack direction="row" spacing={0.5}>
-                      <IconButton onClick={() => handleOpenEditModal(exp)} color="default" size="small">
+                      <IconButton onClick={() => handleOpenEditModal(exp)} color="default" size="small" sx={{ bgcolor: 'rgba(0,0,0,0.02)', '&:hover': { bgcolor: 'rgba(0,0,0,0.06)' } }}>
                         <EditIcon fontSize="small" sx={{ color: 'text.secondary' }} />
                       </IconButton>
-                      <IconButton onClick={() => handleDeleteExpense(exp.id)} color="error" size="small">
+                      <IconButton onClick={() => handleDeleteExpense(exp.id)} color="error" size="small" sx={{ bgcolor: 'rgba(211,47,47,0.04)', '&:hover': { bgcolor: 'rgba(211,47,47,0.1)' } }}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Stack>
-                  </Stack>
+                  </Box>
                 </Box>
               </Card>
             </Grid>

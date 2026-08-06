@@ -18,6 +18,7 @@ import {
   CircularProgress,
   Fab,
   Grid,
+  Divider,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -175,46 +176,56 @@ const Services = () => {
           <CircularProgress />
         </Box>
       ) : services.length > 0 ? (
-        <Grid container spacing={2}>
+        <Grid container spacing={2.5}>
           {services.map((item) => (
-            <Grid item xs={12} key={item.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
               <Card
                 sx={{
-                  borderRadius: 3,
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                  borderRadius: 3.5,
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
                   border: '1px solid rgba(0,0,0,0.05)',
-                  p: 1.5,
+                  borderLeft: '4px solid #0b5394',
+                  p: 2.5,
+                  height: '100%',
                   display: 'flex',
+                  flexDirection: 'column',
                   justifyContent: 'space-between',
-                  alignItems: 'center',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 10px 25px rgba(11, 83, 148, 0.08)',
+                  }
                 }}
               >
-                {/* Left side details */}
+                {/* Upper Details */}
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', mb: 0.5, fontSize: '1rem' }}>
                     {item.name}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Rate Unit: {item.unit}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                    Rate Unit: <strong>{item.unit || 'n/a'}</strong>
                   </Typography>
                 </Box>
 
-                {/* Right side rate and actions */}
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'extraBold', color: 'secondary.dark' }}>
-                    {formatCurrency(item.rate)}
-                  </Typography>
-                  {isAdmin() && (
-                    <Stack direction="row" spacing={0.5}>
-                      <IconButton onClick={() => handleOpenEditModal(item)} color="default" size="small">
-                        <EditIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                      </IconButton>
-                      <IconButton onClick={() => handleDeleteService(item.id, item.name)} color="error" size="small">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  )}
-                </Stack>
+                {/* Bottom Details & Actions */}
+                <Box sx={{ mt: 'auto' }}>
+                  <Divider sx={{ my: 1.5, borderColor: 'rgba(0,0,0,0.06)' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'extraBold', color: 'secondary.dark', fontSize: '1.15rem' }}>
+                      {formatCurrency(item.rate)}
+                    </Typography>
+                    {isAdmin() && (
+                      <Stack direction="row" spacing={0.5}>
+                        <IconButton onClick={() => handleOpenEditModal(item)} color="default" size="small" sx={{ bgcolor: 'rgba(0,0,0,0.02)', '&:hover': { bgcolor: 'rgba(0,0,0,0.06)' } }}>
+                          <EditIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        </IconButton>
+                        <IconButton onClick={() => handleDeleteService(item.id, item.name)} color="error" size="small" sx={{ bgcolor: 'rgba(211,47,47,0.04)', '&:hover': { bgcolor: 'rgba(211,47,47,0.1)' } }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    )}
+                  </Box>
+                </Box>
               </Card>
             </Grid>
           ))}

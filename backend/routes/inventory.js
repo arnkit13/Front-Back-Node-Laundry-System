@@ -170,7 +170,7 @@ router.get('/history', requireRole('ROLE_ADMIN'), async (req, res) => {
              u.id as "userId", u.full_name as "userFullName"
       FROM soap_inventory_history h
       JOIN soap_products p ON h.soap_product_id = p.id
-      JOIN users u ON h.performed_by = u.id
+      LEFT JOIN users u ON h.performed_by = u.id
       ORDER BY h.created_at DESC
     `);
 
@@ -187,9 +187,12 @@ router.get('/history', requireRole('ROLE_ADMIN'), async (req, res) => {
         name: row.productName,
         unit: row.productUnit
       },
-      performedBy: {
+      performedBy: row.userId ? {
         id: Number(row.userId),
         fullName: row.userFullName
+      } : {
+        id: 0,
+        fullName: 'System/Deleted Employee'
       }
     }));
 

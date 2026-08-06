@@ -38,10 +38,14 @@ const assembleTransactionObj = (row, serviceItems = []) => {
       name: row.productName,
       unit: row.productUnit
     },
-    user: {
+    user: row.userId ? {
       id: Number(row.userId),
       username: row.username,
       fullName: row.userFullName
+    } : {
+      id: 0,
+      username: 'deleted',
+      fullName: 'System/Deleted Employee'
     },
     branch: row.branchId ? {
       id: Number(row.branchId),
@@ -80,7 +84,7 @@ router.get('/', async (req, res) => {
                b.id as "branchId", b.name as "branchName", b.location as "branchLocation"
         FROM laundry_transactions t
         JOIN soap_products p ON t.soap_product_id = p.id
-        JOIN users u ON t.user_id = u.id
+        LEFT JOIN users u ON t.user_id = u.id
         LEFT JOIN branches b ON t.branch_id = b.id
         ORDER BY t.id DESC
       `);
@@ -96,7 +100,7 @@ router.get('/', async (req, res) => {
                b.id as "branchId", b.name as "branchName", b.location as "branchLocation"
         FROM laundry_transactions t
         JOIN soap_products p ON t.soap_product_id = p.id
-        JOIN users u ON t.user_id = u.id
+        LEFT JOIN users u ON t.user_id = u.id
         LEFT JOIN branches b ON t.branch_id = b.id
         WHERE t.user_id = $1
         ORDER BY t.date DESC, t.id DESC
@@ -238,7 +242,7 @@ router.post('/', async (req, res) => {
              b.id as "branchId", b.name as "branchName", b.location as "branchLocation"
       FROM laundry_transactions t
       JOIN soap_products p ON t.soap_product_id = p.id
-      JOIN users u ON t.user_id = u.id
+      LEFT JOIN users u ON t.user_id = u.id
       LEFT JOIN branches b ON t.branch_id = b.id
       WHERE t.id = $1
     `, [transactionId]);
@@ -280,7 +284,7 @@ router.put('/:id/pickup', async (req, res) => {
              b.id as "branchId", b.name as "branchName", b.location as "branchLocation"
       FROM laundry_transactions t
       JOIN soap_products p ON t.soap_product_id = p.id
-      JOIN users u ON t.user_id = u.id
+      LEFT JOIN users u ON t.user_id = u.id
       LEFT JOIN branches b ON t.branch_id = b.id
       WHERE t.id = $1
     `, [id]);

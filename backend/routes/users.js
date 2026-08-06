@@ -234,12 +234,11 @@ router.delete('/:id', async (req, res) => {
     const historyCheck = await query('SELECT EXISTS(SELECT 1 FROM soap_inventory_history WHERE performed_by = $1)', [id]);
     const hasInventoryHistory = historyCheck.rows[0].exists;
 
-    if (hasTransactions || hasInventoryHistory) {
-      // Deactivate user instead
-      await query('UPDATE users SET active = false WHERE id = $1', [id]);
-      return res.status(400).json({
-        message: "DEACTIVATED: Cannot delete employee because they have recorded laundry washes or inventory logs. Their account has been deactivated instead to preserve historical records."
-      });
+    if (hasTransactions) {
+      await query('UPDATE laundry_transactions SET user_id = NULL WHERE user_id = $1', [id]);
+    }
+    if (hasInventoryHistory) {
+      await query('UPDATE soap_inventory_history SET performed_by = NULL WHERE performed_by = $1', [id]);
     }
 
     await query('DELETE FROM users WHERE id = $1', [id]);

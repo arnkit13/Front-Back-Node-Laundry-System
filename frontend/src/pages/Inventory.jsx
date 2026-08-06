@@ -243,67 +243,88 @@ const Inventory = () => {
       ) : activeTab === 0 ? (
         /* Tab 0: Product Stocks List in Card layouts matching screenshot */
         products.length > 0 ? (
-          <Grid container spacing={2}>
+          <Grid container spacing={2.5}>
             {products.map((product) => {
               const minVal = product.minStock !== null ? product.minStock : 20.0;
               const initialVal = product.initialStock !== null ? product.initialStock : product.quantity;
               const isLow = product.quantity < minVal;
               return (
-                <Grid item xs={12} key={product.id}>
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
                   <Card
                     sx={{
-                      borderRadius: 3,
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                      borderRadius: 3.5,
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
                       border: '1px solid rgba(0,0,0,0.05)',
-                      p: 2,
+                      borderLeft: isLow ? '4px solid #f59e0b' : '4px solid #10b981',
+                      p: 2.5,
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: isLow ? '0 10px 25px rgba(245, 158, 11, 0.08)' : '0 10px 25px rgba(16, 185, 129, 0.08)',
+                      }
                     }}
                   >
-                    {/* Top Row: Name (with low stock warning) and Available Stock Qty */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    {/* Top Row: Name and warning status */}
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1rem', lineHeight: 1.2 }}>
                           {product.name}
                         </Typography>
                         {isLow && (
-                          <WarningIcon color="warning" fontSize="small" sx={{ ml: 1 }} />
+                          <WarningIcon color="warning" fontSize="small" />
                         )}
                       </Box>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 'bold',
-                          color: isLow ? 'error.main' : 'success.main',
-                        }}
-                      >
-                        {product.quantity.toFixed(1)} {product.unit}
+                      
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                        Min Alert: <strong>{minVal.toFixed(1)} {product.unit}</strong><br />
+                        Initial Seed: <strong>{initialVal.toFixed(1)} {product.unit}</strong>
                       </Typography>
                     </Box>
 
-                    {/* Middle Row: min alert and initial seed details */}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                      Min Alert Level: {minVal.toFixed(1)} {product.unit} • Initial Seed: {initialVal.toFixed(1)} {product.unit}
-                    </Typography>
-
-                    {/* Bottom Row: Action buttons */}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<AdjustIcon sx={{ fontSize: '0.9rem' }} />}
-                        onClick={() => handleOpenAdjustModal(product)}
-                        sx={{
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 'bold',
-                          color: 'primary.main',
-                          borderColor: 'primary.main',
-                        }}
-                      >
-                        Adjust Stock
-                      </Button>
-                      <IconButton onClick={() => handleDeleteProduct(product.id)} color="error" size="small" sx={{ ml: 1 }}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                    {/* Bottom Row: Stock Quantity and Action buttons */}
+                    <Box sx={{ mt: 'auto' }}>
+                      <Divider sx={{ my: 1.5, borderColor: 'rgba(0,0,0,0.06)' }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                          Available:
+                        </Typography>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 'extraBold',
+                            color: isLow ? 'error.main' : 'success.main',
+                            fontSize: '1.15rem'
+                          }}
+                        >
+                          {product.quantity.toFixed(1)} {product.unit}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<AdjustIcon sx={{ fontSize: '0.9rem' }} />}
+                          onClick={() => handleOpenAdjustModal(product)}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                            borderColor: 'primary.main',
+                            px: 1.5,
+                            py: 0.5,
+                          }}
+                        >
+                          Adjust Stock
+                        </Button>
+                        <IconButton onClick={() => handleDeleteProduct(product.id)} color="error" size="small" sx={{ bgcolor: 'rgba(211,47,47,0.04)', '&:hover': { bgcolor: 'rgba(211,47,47,0.1)' } }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
                   </Card>
                 </Grid>
@@ -318,68 +339,83 @@ const Inventory = () => {
       ) : (
         /* Tab 1: Audit Log History List in Card layouts */
         history.length > 0 ? (
-          <Grid container spacing={2}>
-            {history.map((log) => (
-              <Grid item xs={12} key={log.id}>
-                <Card
-                  sx={{
-                    borderRadius: 3,
-                    boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    p: 2,
-                  }}
-                >
-                  {/* Top Row: Action Chip / Time and Qty Changed */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Chip
-                        label={log.transactionType}
-                        size="small"
-                        color={
-                          log.transactionType === 'ADD_STOCK' ? 'primary' :
-                          log.transactionType === 'USE_STOCK' ? 'default' : 'secondary'
-                        }
-                        variant="outlined"
-                        sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </Typography>
-                    </Stack>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 'bold',
-                        color: log.quantityChanged < 0 ? 'error.main' : 'success.main',
-                      }}
-                    >
-                      {log.quantityChanged > 0 ? `+${log.quantityChanged.toFixed(2)}` : log.quantityChanged.toFixed(2)} {log.soapProduct?.unit}
-                    </Typography>
-                  </Box>
+          <Grid container spacing={2.5}>
+            {history.map((log) => {
+              const isUse = log.transactionType === 'USE_STOCK';
+              const isAdd = log.transactionType === 'ADD_STOCK';
+              return (
+                <Grid item xs={12} sm={6} md={4} key={log.id}>
+                  <Card
+                    sx={{
+                      borderRadius: 3.5,
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
+                      border: '1px solid rgba(0,0,0,0.05)',
+                      borderLeft: isAdd ? '4px solid #0ea5e9' : isUse ? '4px solid #64748b' : '4px solid #a855f7',
+                      p: 2.5,
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+                      }
+                    }}
+                  >
+                    {/* Top Row: Action Chip & Time */}
+                    <Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Chip
+                          label={log.transactionType}
+                          size="small"
+                          color={isAdd ? 'primary' : isUse ? 'default' : 'secondary'}
+                          variant="outlined"
+                          sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(log.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
 
-                  {/* Middle Row: Product link and stock level changes */}
-                  <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
-                    Product: <strong>{log.soapProduct?.name}</strong>
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                    Prior Stock: {log.previousQuantity.toFixed(2)} {log.soapProduct?.unit} → New Stock: {log.newQuantity.toFixed(2)} {log.soapProduct?.unit}
-                  </Typography>
-
-                  {/* Bottom Row: Performed By and Notes */}
-                  <Divider sx={{ my: 1 }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
-                      By: {log.performedBy?.fullName || 'System'}
-                    </Typography>
-                    {log.notes && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                        {log.notes}
+                      {/* Product Name */}
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.95rem', mb: 0.5 }}>
+                        {log.soapProduct?.name}
                       </Typography>
-                    )}
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
+                      
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        Prior: {log.previousQuantity.toFixed(1)} → New: {log.newQuantity.toFixed(1)} {log.soapProduct?.unit}
+                      </Typography>
+                    </Box>
+
+                    {/* Bottom row: quantity change and operator details */}
+                    <Box sx={{ mt: 'auto' }}>
+                      <Divider sx={{ my: 1.5, borderColor: 'rgba(0,0,0,0.06)' }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                          By: {log.performedBy?.fullName || 'System'}
+                        </Typography>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 'bold',
+                            color: log.quantityChanged < 0 ? 'error.main' : 'success.main',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          {log.quantityChanged > 0 ? `+${log.quantityChanged.toFixed(1)}` : log.quantityChanged.toFixed(1)} {log.soapProduct?.unit}
+                        </Typography>
+                      </Box>
+                      {log.notes && (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', display: 'block', mt: 0.5, bgcolor: 'rgba(0,0,0,0.02)', p: 0.8, borderRadius: 1 }}>
+                          {log.notes}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         ) : (
           <Card sx={{ p: 6, textAlign: 'center', border: '1px dashed #ccc', borderRadius: 3 }}>
