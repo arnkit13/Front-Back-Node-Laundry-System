@@ -327,24 +327,22 @@ const AdminDashboard = () => {
                     <Box sx={{ position: 'relative', width: '100%', height: 240, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.expenseCategoryBreakdown && stats.expenseCategoryBreakdown.length > 0 ? (
                         <>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={stats.expenseCategoryBreakdown}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={58}
-                                outerRadius={80}
-                                paddingAngle={2}
-                                dataKey="value"
-                              >
-                                {stats.expenseCategoryBreakdown.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(value) => formatCurrency(value)} />
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <PieChart width={280} height={240}>
+                            <Pie
+                              data={stats.expenseCategoryBreakdown}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={65}
+                              outerRadius={90}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {stats.expenseCategoryBreakdown.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                          </PieChart>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
                             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.25rem' }}>
@@ -387,24 +385,22 @@ const AdminDashboard = () => {
                     <Box sx={{ position: 'relative', width: '100%', height: 240, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.incomeServiceBreakdown && stats.incomeServiceBreakdown.length > 0 ? (
                         <>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={stats.incomeServiceBreakdown}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={58}
-                                outerRadius={80}
-                                paddingAngle={2}
-                                dataKey="value"
-                              >
-                                {stats.incomeServiceBreakdown.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(value) => formatCurrency(value)} />
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <PieChart width={280} height={240}>
+                            <Pie
+                              data={stats.incomeServiceBreakdown}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={65}
+                              outerRadius={90}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {stats.incomeServiceBreakdown.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                          </PieChart>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
                             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.25rem' }}>
