@@ -12,6 +12,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Avatar,
 } from '@mui/material';
 import {
   LocalLaundryService as LaundryIcon,
@@ -110,24 +111,17 @@ const Login = () => {
         <CardContent sx={{ p: 4 }}>
           {/* Header Branding */}
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <Box
+            <Avatar
+              src="/logo.jpg"
               sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                bgcolor: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
+                width: 56,
+                height: 56,
                 mb: 2,
-                boxShadow: '0 4px 10px rgba(11, 83, 148, 0.3)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
               }}
-            >
-              <LaundryIcon sx={{ fontSize: 24 }} />
-            </Box>
+            />
             <Typography variant="h4" component="h1" align="center" color="primary.dark" sx={{ fontWeight: 'bold' }}>
-              Tacky laundry service
+              Tacky Inventory
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 0.5 }}>
               Laundry & Inventory Management

@@ -81,11 +81,9 @@ const Layout = () => {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5, backgroundColor: theme.palette.primary.dark }}>
-        <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-          <LaundryIcon sx={{ fontSize: 18 }} />
-        </Avatar>
+        <Avatar src="/logo.jpg" sx={{ width: 32, height: 32 }} />
         <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.1rem' }}>
-          Tacky laundry service
+          Tacky Inventory
         </Typography>
       </Box>
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
