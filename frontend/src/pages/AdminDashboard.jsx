@@ -261,10 +261,10 @@ const AdminDashboard = () => {
                     }}
                   >
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.7rem', display: 'block', lineHeight: 1.2 }}>
+                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block', lineHeight: 1.2 }}>
                         INCOME
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.2, color: '#33691e', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.2, color: '#33691e', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.totalRevenue)}
                       </Typography>
                     </CardContent>
@@ -282,10 +282,10 @@ const AdminDashboard = () => {
                     }}
                   >
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.7rem', display: 'block', lineHeight: 1.2 }}>
+                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block', lineHeight: 1.2 }}>
                         EXPENSES
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.2, color: '#c81e1e', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.2, color: '#c81e1e', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.totalExpenses)}
                       </Typography>
                     </CardContent>
@@ -303,10 +303,10 @@ const AdminDashboard = () => {
                     }}
                   >
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.7rem', display: 'block', lineHeight: 1.2 }}>
+                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block', lineHeight: 1.2 }}>
                         PROFIT
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.2, color: '#004d40', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.2, color: '#004d40', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.netProfit)}
                       </Typography>
                     </CardContent>
@@ -324,7 +324,7 @@ const AdminDashboard = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY EXPENSES
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 220, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 260, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.expenseCategoryBreakdown && stats.expenseCategoryBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -333,8 +333,8 @@ const AdminDashboard = () => {
                                 data={stats.expenseCategoryBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={55}
-                                outerRadius={75}
+                                innerRadius={65}
+                                outerRadius={85}
                                 paddingAngle={2}
                                 dataKey="value"
                               >
@@ -346,8 +346,8 @@ const AdminDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.9rem' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.1rem' }}>
                               {formatCurrency(stats.totalExpenses)}
                             </Typography>
                           </Box>
@@ -360,7 +360,7 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list - Compact with scroll bar */}
-                    <Box sx={{ mt: 1.5, maxHeight: 110, overflowY: 'auto', pr: 0.5 }}>
+                    <Box sx={{ mt: 1.5, maxHeight: 130, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.expenseCategoryBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -384,7 +384,7 @@ const AdminDashboard = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY INCOME BY SERVICE
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 220, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 260, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.incomeServiceBreakdown && stats.incomeServiceBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -393,8 +393,8 @@ const AdminDashboard = () => {
                                 data={stats.incomeServiceBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={55}
-                                outerRadius={75}
+                                innerRadius={65}
+                                outerRadius={85}
                                 paddingAngle={2}
                                 dataKey="value"
                               >
@@ -406,8 +406,8 @@ const AdminDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '0.9rem' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', lineHeight: 1 }}>Total</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.dark', fontSize: '1.1rem' }}>
                               {formatCurrency(stats.totalRevenue)}
                             </Typography>
                           </Box>
@@ -420,7 +420,7 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list - Compact with scroll bar */}
-                    <Box sx={{ mt: 1.5, maxHeight: 110, overflowY: 'auto', pr: 0.5 }}>
+                    <Box sx={{ mt: 1.5, maxHeight: 130, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.incomeServiceBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -457,7 +457,7 @@ const AdminDashboard = () => {
                 <Tab label="By Service" />
               </Tabs>
 
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 385 }}>
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 420 }}>
                 {tableTab === 0 && (
                   <TableContainer>
                     <Table stickyHeader size="small">
