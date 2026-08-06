@@ -324,7 +324,7 @@ const AdminDashboard = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY EXPENSES
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 240, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.expenseCategoryBreakdown && stats.expenseCategoryBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -333,8 +333,8 @@ const AdminDashboard = () => {
                                 data={stats.expenseCategoryBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={70}
-                                outerRadius={95}
+                                innerRadius={58}
+                                outerRadius={80}
                                 paddingAngle={2}
                                 dataKey="value"
                               >
@@ -360,7 +360,7 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list - Compact with scroll bar */}
-                    <Box sx={{ mt: 1.5, maxHeight: 140, overflowY: 'auto', pr: 0.5 }}>
+                    <Box sx={{ mt: 1.5, maxHeight: 110, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.expenseCategoryBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -384,7 +384,7 @@ const AdminDashboard = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark', display: 'block', mb: 1.5 }}>
                       MONTHLY INCOME BY SERVICE
                     </Typography>
-                    <Box sx={{ position: 'relative', width: '100%', height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '100%', height: 240, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       {stats?.incomeServiceBreakdown && stats.incomeServiceBreakdown.length > 0 ? (
                         <>
                           <ResponsiveContainer width="100%" height="100%">
@@ -393,8 +393,8 @@ const AdminDashboard = () => {
                                 data={stats.incomeServiceBreakdown}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={70}
-                                outerRadius={95}
+                                innerRadius={58}
+                                outerRadius={80}
                                 paddingAngle={2}
                                 dataKey="value"
                               >
@@ -420,7 +420,7 @@ const AdminDashboard = () => {
                     </Box>
                     
                     {/* Legend list - Compact with scroll bar */}
-                    <Box sx={{ mt: 1.5, maxHeight: 140, overflowY: 'auto', pr: 0.5 }}>
+                    <Box sx={{ mt: 1.5, maxHeight: 110, overflowY: 'auto', pr: 0.5 }}>
                       {stats?.incomeServiceBreakdown?.map((item, idx) => (
                         <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.4 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
