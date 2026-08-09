@@ -17,6 +17,32 @@ export async function runSeeder() {
       ADD COLUMN IF NOT EXISTS picked_up BOOLEAN NOT NULL DEFAULT false
     `);
 
+    await client.query(`
+      ALTER TABLE laundry_transactions 
+      ADD COLUMN IF NOT EXISTS category VARCHAR(50) NOT NULL DEFAULT 'laundry'
+    `);
+
+    await client.query(`
+      ALTER TABLE laundry_transactions 
+      ALTER COLUMN soap_product_id DROP NOT NULL
+    `);
+
+    await client.query(`
+      ALTER TABLE laundry_transactions 
+      ALTER COLUMN soap_used_qty DROP NOT NULL
+    `);
+
+    await client.query(`
+      ALTER TABLE laundry_transactions 
+      ALTER COLUMN soap_remaining_qty DROP NOT NULL
+    `);
+
+    await client.query(`
+      ALTER TABLE laundry_transactions 
+      ALTER COLUMN weight_kg DROP NOT NULL
+    `);
+
+
     // 0. Clean up static/mock soap products if present
     const staticsToDelete = [
       "Powder Detergent (Lemon Clean)",

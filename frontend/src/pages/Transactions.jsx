@@ -46,6 +46,7 @@ import {
   CheckCircle as SuccessIcon,
   FilterList as FilterIcon,
   InfoOutlined as InfoIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 
 const calculateDurationInShop = (createdAtStr, pickedUpAtStr) => {
@@ -107,6 +108,8 @@ const Transactions = () => {
   const [openServicesDialog, setOpenServicesDialog] = useState(false); // Sub-dialog to select services
   const [modalError, setModalError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [category, setCategory] = useState('laundry');
+  const [editingTransactionId, setEditingTransactionId] = useState(null);
 
   // Receipt Modal State
   const [openReceiptModal, setOpenReceiptModal] = useState(false);
@@ -182,6 +185,8 @@ const Transactions = () => {
   }, []);
 
   const handleOpenModal = () => {
+    setEditingTransactionId(null);
+    setCategory('laundry');
     setOpenModal(true);
     setModalError('');
     setCustomerName('');
@@ -195,6 +200,32 @@ const Transactions = () => {
     setCustomRates({});
     setServiceSearchTerm('');
     setOpenServicesDialog(false);
+  };
+
+  const handleEditTransaction = (tx) => {
+    setEditingTransactionId(tx.id);
+    setCategory(tx.category || 'laundry');
+    setCustomerName(tx.customerName || '');
+    setWeightKg(tx.weightKg !== null && tx.weightKg !== undefined ? tx.weightKg.toString() : '');
+    setSoapUsedQty(tx.soapUsedQty !== null && tx.soapUsedQty !== undefined ? tx.soapUsedQty.toString() : '');
+    setSelectedProductId(tx.soapProduct?.id || '');
+    setMachineNumber(tx.machineNumber || 'Machine 1');
+    setPaymentMethod(tx.paymentMethod || 'Cash');
+    setReferenceNumber(tx.referenceNumber || '');
+
+    const services = {};
+    const rates = {};
+    if (tx.serviceItems) {
+      tx.serviceItems.forEach(item => {
+        services[item.laundryService.id] = item.quantity;
+        rates[item.laundryService.id] = item.priceAtTransaction;
+      });
+    }
+    setSelectedServices(services);
+    setCustomRates(rates);
+
+    setModalError('');
+    setOpenModal(true);
   };
 
   const handleCloseModal = () => {
@@ -214,21 +245,23 @@ const Transactions = () => {
     e.preventDefault();
     setModalError('');
 
-    if (!selectedProductId) {
-      setModalError('Soap product selection is required.');
-      return;
-    }
-    if (!weightKg || parseFloat(weightKg) <= 0) {
-      setModalError('Weight must be greater than 0 kg.');
-      return;
-    }
-    if (!soapUsedQty || parseFloat(soapUsedQty) < 0) {
-      setModalError('Soap used quantity cannot be negative.');
-      return;
-    }
-    if (!machineNumber) {
-      setModalError('Machine number selection is required.');
-      return;
+    if (category === 'laundry') {
+      if (!selectedProductId) {
+        setModalError('Soap product selection is required.');
+        return;
+      }
+      if (!weightKg || parseFloat(weightKg) <= 0) {
+        setModalError('Weight must be greater than 0 kg.');
+        return;
+      }
+      if (!soapUsedQty || parseFloat(soapUsedQty) < 0) {
+        setModalError('Soap used quantity cannot be negative.');
+        return;
+      }
+      if (!machineNumber) {
+        setModalError('Machine number selection is required.');
+        return;
+      }
     }
 
     if (paymentMethod === 'Gcash') {
@@ -251,31 +284,47 @@ const Transactions = () => {
       });
 
     if (payloadServices.length === 0) {
-      setModalError('Please select at least one laundry service.');
+      setModalError('Please select at least one service.');
       return;
     }
 
-    const selectedProduct = products.find(p => p.id === selectedProductId);
-    if (selectedProduct && selectedProduct.quantity < parseFloat(soapUsedQty)) {
-      setModalError(`Insufficient stock! ${selectedProduct.name} has only ${selectedProduct.quantity} ${selectedProduct.unit} available.`);
-      return;
+    if (category === 'laundry') {
+      const selectedProduct = products.find(p => p.id === selectedProductId);
+      // Account for original stock if editing
+      let availableStock = selectedProduct ? selectedProduct.quantity : 0;
+      if (editingTransactionId) {
+        const originalTx = transactions.find(t => t.id === editingTransactionId);
+        if (originalTx && originalTx.soapProduct?.id === selectedProductId) {
+          availableStock += originalTx.soapUsedQty || 0;
+        }
+      }
+      if (selectedProduct && availableStock < parseFloat(soapUsedQty)) {
+        setModalError(`Insufficient stock! ${selectedProduct.name} has only ${availableStock.toFixed(2)} ${selectedProduct.unit} available.`);
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
       const payload = {
-        date: new Date().toISOString().split('T')[0],
+        category: category,
+        date: editingTransactionId ? transactions.find(t => t.id === editingTransactionId)?.date || new Date().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         customerName: customerName.trim() || null,
-        weightKg: parseFloat(weightKg),
-        soapProductId: selectedProductId,
-        soapUsedQty: parseFloat(soapUsedQty),
-        machineNumber: machineNumber,
+        weightKg: category === 'laundry' ? parseFloat(weightKg) : null,
+        soapProductId: category === 'laundry' ? selectedProductId : null,
+        soapUsedQty: category === 'laundry' ? parseFloat(soapUsedQty) : null,
+        machineNumber: category === 'laundry' ? machineNumber : null,
         paymentMethod: paymentMethod,
         referenceNumber: paymentMethod === 'Gcash' ? referenceNumber.trim() : null,
         services: payloadServices,
       };
 
-      const response = await api.post('/api/transactions', payload);
+      let response;
+      if (editingTransactionId) {
+        response = await api.put(`/api/transactions/${editingTransactionId}`, payload);
+      } else {
+        response = await api.post('/api/transactions', payload);
+      }
       handleCloseModal();
       setReceiptTx(response.data);
       setOpenReceiptModal(true);
@@ -304,7 +353,14 @@ const Transactions = () => {
     if (!selectedProductId || !soapUsedQty) return null;
     const prod = products.find(p => p.id === selectedProductId);
     if (!prod) return null;
-    const remaining = prod.quantity - parseFloat(soapUsedQty);
+    let currentStock = prod.quantity;
+    if (editingTransactionId) {
+      const originalTx = transactions.find(t => t.id === editingTransactionId);
+      if (originalTx && originalTx.soapProduct?.id === selectedProductId) {
+        currentStock += originalTx.soapUsedQty || 0;
+      }
+    }
+    const remaining = currentStock - parseFloat(soapUsedQty);
     return isNaN(remaining) ? null : remaining;
   };
 
@@ -574,9 +630,9 @@ const Transactions = () => {
                       </Typography>
                     </Box>
 
-                    {/* Subtitle: Date, Machine allocation and kg weight */}
+                    {/* Subtitle: Category, Date, Machine allocation and kg weight */}
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem' }}>
-                      {tx.date} • {tx.machineNumber || 'No Machine'} • {tx.weightKg ? `${tx.weightKg.toFixed(1)} kg washed` : '—'}
+                      <span style={{ textTransform: 'capitalize', fontWeight: 'bold', color: '#ec4899' }}>{tx.category || 'laundry'}</span> • {tx.date} {tx.category === 'laundry' && `• ${tx.machineNumber || 'No Machine'} • ${tx.weightKg ? tx.weightKg.toFixed(1) + ' kg washed' : '—'}`}
                     </Typography>
 
                     {/* Chips Row and Action Info button */}
@@ -626,15 +682,25 @@ const Transactions = () => {
                         />
                       </Stack>
 
-                      {/* Detail Info Trigger icon button */}
-                      <IconButton
-                        onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
-                        color="default"
-                        size="small"
-                        sx={{ bgcolor: '#f4f4f5', '&:hover': { bgcolor: '#e4e4e7' } }}
-                      >
-                        <InfoIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                      </IconButton>
+                      {/* Detail Info Trigger and Edit buttons */}
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          onClick={() => handleEditTransaction(tx)}
+                          color="primary"
+                          size="small"
+                          sx={{ bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
+                          color="default"
+                          size="small"
+                          sx={{ bgcolor: '#f4f4f5', '&:hover': { bgcolor: '#e4e4e7' } }}
+                        >
+                          <InfoIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        </IconButton>
+                      </Box>
                     </Box>
                   </Stack>
                 </Card>
@@ -658,11 +724,11 @@ const Transactions = () => {
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
 
-      {/* Record Transaction Modal Dialog */}
+      {/* Record/Edit Transaction Modal Dialog */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <LaundryIcon color="primary" />
-          Record Laundry Wash
+          {editingTransactionId ? 'Edit Transaction' : 'Record Laundry Wash'}
         </DialogTitle>
         <Box component="form" onSubmit={handleSaveTransaction}>
           <DialogContent dividers sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
@@ -673,6 +739,34 @@ const Transactions = () => {
             )}
 
             <Stack spacing={3}>
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
+                  Transaction Type / Category *
+                </Typography>
+                <ToggleButtonGroup
+                  value={category}
+                  exclusive
+                  onChange={(e, val) => { if (val) setCategory(val); }}
+                  fullWidth
+                  color="primary"
+                  sx={{
+                    display: 'flex',
+                    gap: 1,
+                    '& .MuiToggleButton-root': {
+                      borderRadius: '8px !important',
+                      border: '1px solid !important',
+                      borderColor: 'divider',
+                      fontWeight: 'bold',
+                      py: 1.2,
+                    }
+                  }}
+                >
+                  <ToggleButton value="laundry">Laundry</ToggleButton>
+                  <ToggleButton value="Gym">Gym</ToggleButton>
+                  <ToggleButton value="pickleball">Pickleball</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
               <TextField
                 fullWidth
                 label="Customer Name (Optional)"
@@ -681,50 +775,54 @@ const Transactions = () => {
                 placeholder="Enter customer name..."
               />
 
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
-                  Washing Machine *
-                </Typography>
-                <ToggleButtonGroup
-                  value={machineNumber}
-                  exclusive
-                  onChange={(e, val) => { if (val) setMachineNumber(val); }}
-                  fullWidth
-                  color="primary"
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    '& .MuiToggleButton-root': {
-                      borderRadius: '8px !important',
-                      border: '1px solid !important',
-                      borderColor: 'divider',
-                      flex: '1 1 45%',
-                      fontWeight: 'bold',
-                      py: 1.5,
-                    }
-                  }}
-                >
-                  <ToggleButton value="Machine 1">Machine 1</ToggleButton>
-                  <ToggleButton value="Machine 2">Machine 2</ToggleButton>
-                  <ToggleButton value="Machine 3">Machine 3</ToggleButton>
-                  <ToggleButton value="Machine 4">Machine 4</ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+              {category === 'laundry' && (
+                <>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
+                      Washing Machine *
+                    </Typography>
+                    <ToggleButtonGroup
+                      value={machineNumber}
+                      exclusive
+                      onChange={(e, val) => { if (val) setMachineNumber(val); }}
+                      fullWidth
+                      color="primary"
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        '& .MuiToggleButton-root': {
+                          borderRadius: '8px !important',
+                          border: '1px solid !important',
+                          borderColor: 'divider',
+                          flex: '1 1 45%',
+                          fontWeight: 'bold',
+                          py: 1.5,
+                        }
+                      }}
+                    >
+                      <ToggleButton value="Machine 1">Machine 1</ToggleButton>
+                      <ToggleButton value="Machine 2">Machine 2</ToggleButton>
+                      <ToggleButton value="Machine 3">Machine 3</ToggleButton>
+                      <ToggleButton value="Machine 4">Machine 4</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
 
-              <TextField
-                required
-                fullWidth
-                type="number"
-                label="Weight (kg)"
-                value={weightKg}
-                onChange={(e) => setWeightKg(e.target.value)}
-                placeholder="0.00"
-                InputProps={{
-                  endAdornment: <InputAdornment position="end">kg</InputAdornment>,
-                  inputProps: { min: "0.01", step: "0.01" }
-                }}
-              />
+                  <TextField
+                    required
+                    fullWidth
+                    type="number"
+                    label="Weight (kg)"
+                    value={weightKg}
+                    onChange={(e) => setWeightKg(e.target.value)}
+                    placeholder="0.00"
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">kg</InputAdornment>,
+                      inputProps: { min: "0.01", step: "0.01" }
+                    }}
+                  />
+                </>
+              )}
 
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'medium' }}>
@@ -818,71 +916,75 @@ const Transactions = () => {
                 </Stack>
               )}
 
-              <TextField
-                required
-                fullWidth
-                select
-                label="Soap Product Used"
-                value={selectedProductId}
-                onChange={(e) => setSelectedProductId(Number(e.target.value))}
-                helperText={
-                  selectedProductDetails
-                    ? `Available Stock: ${selectedProductDetails.quantity.toFixed(2)} ${selectedProductDetails.unit}`
-                    : 'Select product to check stock level'
-                }
-              >
-                {products.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              <TextField
-                required
-                fullWidth
-                type="number"
-                label="Soap Amount Used"
-                value={soapUsedQty}
-                onChange={(e) => setSoapUsedQty(e.target.value)}
-                placeholder="0.00"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {selectedProductDetails ? selectedProductDetails.unit : 'unit'}
-                    </InputAdornment>
-                  ),
-                  inputProps: { min: "0.00", step: "0.01" }
-                }}
-              />
-
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderRadius: 2,
-                  bgcolor: 'background.default',
-                  borderColor: calculatedRemainingSoap !== null && calculatedRemainingSoap < 0 ? 'error.light' : 'divider',
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">Remaining Soap Stock After Wash:</Typography>
-                {calculatedRemainingSoap !== null ? (
-                  <Typography
-                     variant="subtitle1"
-                     sx={{
-                       fontWeight: 'bold',
-                       color: calculatedRemainingSoap < 0 ? 'error.main' : 'success.main',
-                     }}
+              {category === 'laundry' && (
+                <>
+                  <TextField
+                    required
+                    fullWidth
+                    select
+                    label="Soap Product Used"
+                    value={selectedProductId}
+                    onChange={(e) => setSelectedProductId(Number(e.target.value))}
+                    helperText={
+                      selectedProductDetails
+                        ? `Available Stock: ${selectedProductDetails.quantity.toFixed(2)} ${selectedProductDetails.unit}`
+                        : 'Select product to check stock level'
+                    }
                   >
-                    {calculatedRemainingSoap.toFixed(2)} {selectedProductDetails?.unit}
-                  </Typography>
-                ) : (
-                  <Typography variant="body2" color="text.disabled">—</Typography>
-                )}
-              </Paper>
+                    {products.map((p) => (
+                      <MenuItem key={p.id} value={p.id}>
+                        {p.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    required
+                    fullWidth
+                    type="number"
+                    label="Soap Amount Used"
+                    value={soapUsedQty}
+                    onChange={(e) => setSoapUsedQty(e.target.value)}
+                    placeholder="0.00"
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {selectedProductDetails ? selectedProductDetails.unit : 'unit'}
+                        </InputAdornment>
+                      ),
+                      inputProps: { min: "0.00", step: "0.01" }
+                    }}
+                  />
+
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderRadius: 2,
+                      bgcolor: 'background.default',
+                      borderColor: calculatedRemainingSoap !== null && calculatedRemainingSoap < 0 ? 'error.light' : 'divider',
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">Remaining Soap Stock After Wash:</Typography>
+                    {calculatedRemainingSoap !== null ? (
+                      <Typography
+                         variant="subtitle1"
+                         sx={{
+                           fontWeight: 'bold',
+                           color: calculatedRemainingSoap < 0 ? 'error.main' : 'success.main',
+                         }}
+                      >
+                        {calculatedRemainingSoap.toFixed(2)} {selectedProductDetails?.unit}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.disabled">—</Typography>
+                    )}
+                  </Paper>
+                </>
+              )}
 
               <Paper
                 variant="outlined"
@@ -910,7 +1012,7 @@ const Transactions = () => {
                 </Typography>
               </Paper>
 
-              {calculatedRemainingSoap !== null && calculatedRemainingSoap < 0 && (
+              {category === 'laundry' && calculatedRemainingSoap !== null && calculatedRemainingSoap < 0 && (
                 <Alert severity="error" sx={{ py: 0 }}>
                   Remaining soap cannot be negative. Please check soap used quantity.
                 </Alert>
@@ -922,10 +1024,10 @@ const Transactions = () => {
             <Button
               type="submit"
               variant="contained"
-              disabled={submitting || (calculatedRemainingSoap !== null && calculatedRemainingSoap < 0)}
+              disabled={submitting || (category === 'laundry' && calculatedRemainingSoap !== null && calculatedRemainingSoap < 0)}
               startIcon={submitting && <CircularProgress size={16} color="inherit" />}
             >
-              {submitting ? 'Saving...' : 'Record Wash'}
+              {submitting ? 'Saving...' : (editingTransactionId ? 'Save Changes' : 'Record Wash')}
             </Button>
           </DialogActions>
         </Box>
@@ -1088,6 +1190,24 @@ const Transactions = () => {
               <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Customer Name</Typography>
               <Typography variant="body2">{receiptTx?.customerName || 'Anonymous'}</Typography>
             </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Category</Typography>
+              <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>{receiptTx?.category || 'laundry'}</Typography>
+            </Box>
+
+            {receiptTx?.category === 'laundry' && (
+              <>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Machine</Typography>
+                  <Typography variant="body2">{receiptTx?.machineNumber || '—'}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Weight</Typography>
+                  <Typography variant="body2">{receiptTx?.weightKg ? `${receiptTx.weightKg.toFixed(2)} kg` : '—'}</Typography>
+                </Box>
+              </>
+            )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Date</Typography>
