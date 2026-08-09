@@ -110,6 +110,7 @@ const Transactions = () => {
   const [submitting, setSubmitting] = useState(false);
   const [category, setCategory] = useState('laundry');
   const [editingTransactionId, setEditingTransactionId] = useState(null);
+  const [transactionDate, setTransactionDate] = useState('');
 
   // Receipt Modal State
   const [openReceiptModal, setOpenReceiptModal] = useState(false);
@@ -187,6 +188,7 @@ const Transactions = () => {
   const handleOpenModal = () => {
     setEditingTransactionId(null);
     setCategory('laundry');
+    setTransactionDate(new Date().toISOString().split('T')[0]);
     setOpenModal(true);
     setModalError('');
     setCustomerName('');
@@ -205,6 +207,7 @@ const Transactions = () => {
   const handleEditTransaction = (tx) => {
     setEditingTransactionId(tx.id);
     setCategory(tx.category || 'laundry');
+    setTransactionDate(tx.date || new Date().toISOString().split('T')[0]);
     setCustomerName(tx.customerName || '');
     setWeightKg(tx.weightKg !== null && tx.weightKg !== undefined ? tx.weightKg.toString() : '');
     setSoapUsedQty(tx.soapUsedQty !== null && tx.soapUsedQty !== undefined ? tx.soapUsedQty.toString() : '');
@@ -308,7 +311,7 @@ const Transactions = () => {
     try {
       const payload = {
         category: category,
-        date: editingTransactionId ? transactions.find(t => t.id === editingTransactionId)?.date || new Date().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date: transactionDate,
         customerName: customerName.trim() || null,
         weightKg: category === 'laundry' ? parseFloat(weightKg) : null,
         soapProductId: category === 'laundry' ? selectedProductId : null,
@@ -773,6 +776,16 @@ const Transactions = () => {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Enter customer name..."
+              />
+
+              <TextField
+                required
+                fullWidth
+                type="date"
+                label="Transaction Date"
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
               />
 
               {category === 'laundry' && (
