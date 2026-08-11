@@ -11,6 +11,7 @@ const monthNames = ["January", "February", "March", "April", "May", "June", "Jul
 router.get('/stats', async (req, res) => {
   let reqYear = req.query.year ? parseInt(req.query.year, 10) : null;
   let reqMonth = req.query.month ? parseInt(req.query.month, 10) : null;
+  let branchId = req.query.branchId ? parseInt(req.query.branchId, 10) : null;
 
   const targetYear = (reqYear && reqYear > 0) ? reqYear : new Date().getFullYear();
   const isAnnual = (!reqMonth || reqMonth <= 0 || reqMonth > 12);
@@ -20,13 +21,22 @@ router.get('/stats', async (req, res) => {
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Today's transactions
-    const todayTxsRes = await query(`
-      SELECT COALESCE(COUNT(*), 0) as count, COALESCE(SUM(weight_kg), 0) as weight
+    let todayQuery = `
+      SELECT COALESCE(COUNT(*), 0) as count, 
+             COALESCE(SUM(weight_kg), 0) as weight,
+             COALESCE(SUM(total_amount), 0) as revenue
       FROM laundry_transactions
       WHERE date = $1
-    `, [todayStr]);
+    `;
+    let todayParams = [todayStr];
+    if (branchId) {
+      todayQuery += ` AND branch_id = $2`;
+      todayParams.push(branchId);
+    }
+    const todayTxsRes = await query(todayQuery, todayParams);
     const totalTransactionsToday = parseInt(todayTxsRes.rows[0].count, 10);
     const totalKgWashedToday = Number(todayTxsRes.rows[0].weight);
+    const totalRevenueToday = Number(todayTxsRes.rows[0].revenue);
     const totalCustomersToday = totalTransactionsToday;
 
     // Soap stocks status
@@ -50,17 +60,29 @@ router.get('/stats', async (req, res) => {
     });
 
     // All transactions for filtering
-    const txsRes = await query(`
+    let txsQuery = `
       SELECT date, total_amount as "totalAmount", payment_method as "paymentMethod"
       FROM laundry_transactions
-    `);
+    `;
+    let txsParams = [];
+    if (branchId) {
+      txsQuery += ` WHERE branch_id = $1`;
+      txsParams.push(branchId);
+    }
+    const txsRes = await query(txsQuery, txsParams);
     const allTransactions = txsRes.rows;
 
     // All expenses for filtering
-    const expensesRes = await query(`
+    let expensesQuery = `
       SELECT category, amount, date
       FROM expenses
-    `);
+    `;
+    let expensesParams = [];
+    if (branchId) {
+      expensesQuery += ` WHERE branch_id = $1`;
+      expensesParams.push(branchId);
+    }
+    const expensesRes = await query(expensesQuery, expensesParams);
     const allExpenses = expensesRes.rows;
 
     // Helper: Parse postgres Date or date-string to JS Date safely
@@ -141,13 +163,19 @@ router.get('/stats', async (req, res) => {
 
     // incomeByService (revenue by laundry service)
     // Fetch transaction service items that map to transactions
-    const serviceItemsRes = await query(`
+    let serviceItemsQuery = `
       SELECT i.quantity, i.price_at_transaction as "priceAtTransaction", 
              s.name as "serviceName", t.date
       FROM transaction_service_items i
       JOIN laundry_services s ON i.service_id = s.id
       JOIN laundry_transactions t ON i.transaction_id = t.id
-    `);
+    `;
+    let serviceItemsParams = [];
+    if (branchId) {
+      serviceItemsQuery += ` WHERE t.branch_id = $1`;
+      serviceItemsParams.push(branchId);
+    }
+    const serviceItemsRes = await query(serviceItemsQuery, serviceItemsParams);
     
     const allServiceItems = serviceItemsRes.rows;
     const filteredServiceItems = allServiceItems.filter(item => {
@@ -234,6 +262,7 @@ router.get('/stats', async (req, res) => {
     return res.json({
       totalTransactionsToday,
       totalKgWashedToday,
+      totalRevenueToday,
       totalCustomersToday,
       soapStocks,
       totalRevenue,
