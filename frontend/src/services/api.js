@@ -671,6 +671,7 @@ if (USE_MOCK) {
 } else {
   api = axios.create({
     baseURL: API_BASE_URL,
+    timeout: 20000,
     headers: {
       'Content-Type': 'application/json',
     },

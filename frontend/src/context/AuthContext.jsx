@@ -24,6 +24,12 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return userData;
     } catch (error) {
+      if (error.code === 'ECONNABORTED' || error.message?.toLowerCase().includes('timeout')) {
+        throw 'Connection timed out. The server might be starting up or unreachable. Please try again.';
+      }
+      if (!error.response) {
+        throw 'Cannot connect to server. Please check backend server status and API configuration.';
+      }
       throw error.response?.data?.message || 'Login failed! Check your credentials.';
     }
   };

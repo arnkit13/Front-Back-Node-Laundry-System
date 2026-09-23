@@ -6,7 +6,7 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const rawUrl = process.env.SPRING_DATASOURCE_URL || process.env.DATABASE_URL || "postgresql://postgres.eputmfbpfjsvmpmhopdq:Camomot12345%40@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require";
+const rawUrl = process.env.SPRING_DATASOURCE_URL || process.env.DATABASE_URL || "postgresql://postgres:LFamNwAntvmhUkrWmWYJHwcXzFjoshWe@altaria.proxy.rlwy.net:35770/railway";
 
 // Clean JDBC URL prefix if present
 const connectionString = rawUrl.replace(/^jdbc:postgresql:/, 'postgresql:');

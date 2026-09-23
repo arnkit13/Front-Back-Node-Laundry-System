@@ -19,23 +19,33 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// CORS configuration matching Spring Boot allowed origins
+// CORS configuration matching deployment and local origins
 const rawOrigins = process.env.ALLOWED_ORIGINS || '';
-const allowedOrigins = rawOrigins ? rawOrigins.split(',') : [
-  'http://localhost:5173', 'http://127.0.0.1:5173',
-  'http://localhost:5174', 'http://127.0.0.1:5174',
-  'http://localhost:5175', 'http://127.0.0.1:5175',
-  'http://localhost:5176', 'http://127.0.0.1:5176'
-];
+const configuredOrigins = rawOrigins ? rawOrigins.split(',').map(s => s.trim()) : [];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl)
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+    
+    // If ALLOWED_ORIGINS is not set or contains wildcard '*', allow all origins
+    if (configuredOrigins.length === 0 || configuredOrigins.includes('*')) {
       return callback(null, true);
     }
-    return callback(new Error(`Not allowed by CORS. Origin: "${origin}", Allowed: ${JSON.stringify(allowedOrigins)}`));
+    
+    // Check configured origins or common deployment domains
+    if (
+      configuredOrigins.includes(origin) ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.railway.app') ||
+      origin.endsWith('.onrender.com')
+    ) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error(`Not allowed by CORS. Origin: "${origin}", Allowed: ${JSON.stringify(configuredOrigins)}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
