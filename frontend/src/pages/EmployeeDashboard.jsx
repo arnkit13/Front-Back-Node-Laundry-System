@@ -91,6 +91,11 @@ const EmployeeDashboard = () => {
   const [receiptTx, setReceiptTx] = useState(null);
   const [openServicesDialog, setOpenServicesDialog] = useState(false);
   
+  // Claim Confirmation Modal State
+  const [openClaimModal, setOpenClaimModal] = useState(false);
+  const [targetClaimTx, setTargetClaimTx] = useState(null);
+  const [claiming, setClaiming] = useState(false);
+
   // Employee's Recent Transactions (Employee View)
   const [recentTransactions, setRecentTransactions] = useState([]);
 
@@ -249,17 +254,25 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const handleMarkAsPickedUp = async (id) => {
-    if (!window.confirm('Are you sure you want to mark this transaction as picked up?')) {
-      return;
-    }
+  const handleInitiateClaim = (tx) => {
+    setTargetClaimTx(tx);
+    setOpenClaimModal(true);
+  };
+
+  const handleConfirmClaim = async () => {
+    if (!targetClaimTx) return;
+    setClaiming(true);
     try {
-      await api.put(`/api/transactions/${id}/pickup`);
+      await api.put(`/api/transactions/${targetClaimTx.id}/pickup`);
+      setOpenClaimModal(false);
+      setOpenReceiptModal(false);
       await fetchRecentTransactions();
       await fetchStats();
     } catch (err) {
-      console.error('Failed to mark transaction as picked up.', err);
-      alert(err.response?.data?.message || 'Failed to mark transaction as picked up.');
+      console.error('Failed to mark transaction as claimed.', err);
+      alert(err.response?.data?.message || 'Failed to mark transaction as claimed.');
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -664,11 +677,11 @@ const EmployeeDashboard = () => {
                               {!tx.pickedUp && (
                                 <IconButton
                                   edge="end"
-                                  aria-label="pickup"
-                                  onClick={() => handleMarkAsPickedUp(tx.id)}
+                                  aria-label="claim"
+                                  onClick={() => handleInitiateClaim(tx)}
                                   color="success"
                                   size="small"
-                                  title="Mark as Picked Up"
+                                  title="Mark as Claimed"
                                 >
                                   <SuccessIcon />
                                 </IconButton>
@@ -691,7 +704,7 @@ const EmployeeDashboard = () => {
                                     sx={{ height: 20, fontSize: '0.7rem' }}
                                   />
                                   <Chip
-                                    label={tx.pickedUp ? `Picked Up (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `In Shop (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
+                                    label={tx.pickedUp ? `Claimed (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `Unclaimed (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
                                     color={tx.pickedUp ? 'success' : 'warning'}
                                     variant="outlined"
                                     size="small"
@@ -802,12 +815,10 @@ const EmployeeDashboard = () => {
               startIcon={<SuccessIcon />}
               variant="contained"
               color="success"
-              onClick={async () => {
-                await handleMarkAsPickedUp(receiptTx.id);
-                setOpenReceiptModal(false);
-              }}
+              onClick={() => handleInitiateClaim(receiptTx)}
+              sx={{ fontWeight: 'bold' }}
             >
-              Mark as Picked Up
+              Claimed
             </Button>
           )}
           <Button startIcon={<PrintIcon />} variant="outlined" onClick={handlePrintReceipt}>
@@ -816,6 +827,73 @@ const EmployeeDashboard = () => {
           <Button variant="contained" onClick={() => setOpenReceiptModal(false)}>
             Close
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Claim Confirmation Dialog with exact note requested */}
+      <Dialog
+        open={openClaimModal}
+        onClose={() => !claiming && setOpenClaimModal(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, p: 1 }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SuccessIcon color="success" />
+          Confirm Laundry Claim
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 2.5 }}>
+          {targetClaimTx && (
+            <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  {targetClaimTx.customerName || 'Anonymous Customer'}
+                </Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  ₱{Number(targetClaimTx.totalAmount || 0).toFixed(2)}
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Invoice #T-00{targetClaimTx.id} • {targetClaimTx.category || 'laundry'} • {targetClaimTx.date}
+              </Typography>
+            </Box>
+          )}
+
+          <Box sx={{ p: 2, bgcolor: '#e8f5e9', borderRadius: 2, border: '1px solid #c8e6c9', textAlign: 'center' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#1b5e20' }}>
+              Laundry will be marked as claimed
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              The transaction status will update to Claimed and its total amount will be inputted into sales.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', width: '100%', gap: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              disabled={claiming}
+              onClick={() => setOpenClaimModal(false)}
+              sx={{ fontWeight: 'bold', py: 1.2, borderRadius: 2 }}
+            >
+              No
+            </Button>
+            <Button
+              fullWidth
+              variant="contained"
+              color="success"
+              disabled={claiming}
+              onClick={handleConfirmClaim}
+              startIcon={claiming ? <CircularProgress size={18} color="inherit" /> : <SuccessIcon />}
+              sx={{ fontWeight: 'bold', py: 1.2, borderRadius: 2 }}
+            >
+              {claiming ? 'Processing...' : 'Yes'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

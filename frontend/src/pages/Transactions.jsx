@@ -47,6 +47,7 @@ import {
   FilterList as FilterIcon,
   InfoOutlined as InfoIcon,
   Edit as EditIcon,
+  HourglassEmpty as PendingIcon,
 } from '@mui/icons-material';
 
 const calculateDurationInShop = (createdAtStr, pickedUpAtStr) => {
@@ -80,6 +81,15 @@ const Transactions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
+  // Claim Status Filter State: 'unclaimed' | 'claimed' | 'all'
+  const [claimFilter, setClaimFilter] = useState('unclaimed');
+
+  // Claim Confirmation Modal State
+  const [openClaimModal, setOpenClaimModal] = useState(false);
+  const [targetClaimTx, setTargetClaimTx] = useState(null);
+  const [claimSuccessMsg, setClaimSuccessMsg] = useState('');
+  const [claiming, setClaiming] = useState(false);
+
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -327,6 +337,9 @@ const Transactions = () => {
         response = await api.put(`/api/transactions/${editingTransactionId}`, payload);
       } else {
         response = await api.post('/api/transactions', payload);
+        // After inputting transaction, place in unclaimed view
+        setClaimFilter('unclaimed');
+        setPage(0);
       }
       handleCloseModal();
       setReceiptTx(response.data);
@@ -339,16 +352,25 @@ const Transactions = () => {
     }
   };
 
-  const handleMarkAsPickedUp = async (id) => {
-    if (!window.confirm('Are you sure you want to mark this transaction as picked up?')) {
-      return;
-    }
+  const handleInitiateClaim = (tx) => {
+    setTargetClaimTx(tx);
+    setOpenClaimModal(true);
+  };
+
+  const handleConfirmClaim = async () => {
+    if (!targetClaimTx) return;
+    setClaiming(true);
     try {
-      await api.put(`/api/transactions/${id}/pickup`);
-      loadData();
+      await api.put(`/api/transactions/${targetClaimTx.id}/pickup`);
+      setOpenClaimModal(false);
+      setOpenReceiptModal(false);
+      setClaimSuccessMsg(`Laundry for ${targetClaimTx.customerName || 'customer'} marked as claimed.`);
+      await loadData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to mark transaction as picked up.');
+      setError(err.response?.data?.message || 'Failed to mark transaction as claimed.');
       console.error(err);
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -370,8 +392,12 @@ const Transactions = () => {
   const selectedProductDetails = products.find(p => p.id === selectedProductId);
   const calculatedRemainingSoap = getRemainingSoap();
 
-  // Multi-tier filtering matching Android's dropdown selectors
+  // Multi-tier filtering matching Android's dropdown selectors & Claimed/Unclaimed filter
   const filteredTransactions = transactions.filter((tx) => {
+    // Claim status filter
+    if (claimFilter === 'unclaimed' && tx.pickedUp) return false;
+    if (claimFilter === 'claimed' && !tx.pickedUp) return false;
+
     // Search filter
     const searchString = searchTerm.toLowerCase();
     const customer = (tx.customerName || 'anonymous').toLowerCase();
@@ -404,6 +430,10 @@ const Transactions = () => {
     return true;
   });
 
+  // Count unclaimed vs claimed
+  const unclaimedCount = transactions.filter(t => !t.pickedUp).length;
+  const claimedCount = transactions.filter(t => !!t.pickedUp).length;
+
   // Pagination Handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -430,7 +460,7 @@ const Transactions = () => {
   return (
     <Box sx={{ flexGrow: 1 }}>
       {/* Top Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
         <Typography variant="h5" sx={{ fontWeight: 'extraBold', color: 'primary.dark' }}>
           Transactions History
         </Typography>
@@ -448,6 +478,67 @@ const Transactions = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* Claimed and Unclaimed Buttons */}
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 2.5, flexWrap: 'wrap' }}>
+        <Button
+          variant={claimFilter === 'unclaimed' ? 'contained' : 'outlined'}
+          color="warning"
+          startIcon={<PendingIcon />}
+          onClick={() => { setClaimFilter('unclaimed'); setPage(0); }}
+          sx={{
+            fontWeight: 'bold',
+            borderRadius: 2.5,
+            px: 3,
+            py: 1,
+            textTransform: 'none',
+            fontSize: '0.95rem',
+            boxShadow: claimFilter === 'unclaimed' ? '0 4px 12px rgba(245, 127, 23, 0.3)' : 'none',
+          }}
+        >
+          Unclaimed ({unclaimedCount})
+        </Button>
+        <Button
+          variant={claimFilter === 'claimed' ? 'contained' : 'outlined'}
+          color="success"
+          startIcon={<SuccessIcon />}
+          onClick={() => { setClaimFilter('claimed'); setPage(0); }}
+          sx={{
+            fontWeight: 'bold',
+            borderRadius: 2.5,
+            px: 3,
+            py: 1,
+            textTransform: 'none',
+            fontSize: '0.95rem',
+            boxShadow: claimFilter === 'claimed' ? '0 4px 12px rgba(46, 125, 50, 0.3)' : 'none',
+          }}
+        >
+          Claimed ({claimedCount})
+        </Button>
+        <Button
+          variant={claimFilter === 'all' ? 'contained' : 'outlined'}
+          color="inherit"
+          onClick={() => { setClaimFilter('all'); setPage(0); }}
+          sx={{
+            fontWeight: 'bold',
+            borderRadius: 2.5,
+            px: 2.5,
+            py: 1,
+            textTransform: 'none',
+            fontSize: '0.95rem',
+            borderColor: 'divider',
+            color: claimFilter === 'all' ? 'text.primary' : 'text.secondary',
+          }}
+        >
+          All ({transactions.length})
+        </Button>
+      </Box>
+
+      {claimSuccessMsg && (
+        <Alert severity="success" onClose={() => setClaimSuccessMsg('')} sx={{ mb: 2.5, borderRadius: 2 }}>
+          {claimSuccessMsg}
+        </Alert>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
@@ -609,16 +700,18 @@ const Transactions = () => {
               .map((tx) => (
                 <Card
                   key={tx.id}
+                  onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
                   sx={{
                     borderRadius: 3,
                     boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
                     border: '1px solid rgba(0,0,0,0.05)',
                     p: 2,
                     position: 'relative',
+                    cursor: 'pointer',
                     transition: 'transform 0.15s, box-shadow 0.15s',
                     '&:hover': {
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                     }
                   }}
                 >
@@ -638,7 +731,7 @@ const Transactions = () => {
                       <span style={{ textTransform: 'capitalize', fontWeight: 'bold', color: '#ec4899' }}>{tx.category || 'laundry'}</span> • {tx.date} {tx.category === 'laundry' && `• ${tx.machineNumber || 'No Machine'} • ${tx.weightKg ? tx.weightKg.toFixed(1) + ' kg washed' : '—'}`}
                     </Typography>
 
-                    {/* Chips Row and Action Info button */}
+                    {/* Chips Row and Action buttons */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                       <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                         {/* Payment MOP chip */}
@@ -671,7 +764,7 @@ const Transactions = () => {
 
                         {/* Claim/Pickup Status chip */}
                         <Chip
-                          label={tx.pickedUp ? `Picked Up (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `In Shop (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
+                          label={tx.pickedUp ? `Claimed (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})` : `Unclaimed (${calculateDurationInShop(tx.createdAt, tx.pickedUpAt)})`}
                           size="small"
                           sx={{
                             fontWeight: 'bold',
@@ -685,21 +778,56 @@ const Transactions = () => {
                         />
                       </Stack>
 
-                      {/* Detail Info Trigger and Edit buttons */}
-                      <Box sx={{ display: 'flex', gap: 1 }}>
+                      {/* Action buttons: Claimed button (for unclaimed), Edit, and Info */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {!tx.pickedUp && (
+                          <Button
+                            variant="contained"
+                            color="success"
+                            size="small"
+                            startIcon={<SuccessIcon />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInitiateClaim(tx);
+                            }}
+                            sx={{
+                              fontWeight: 'bold',
+                              textTransform: 'none',
+                              fontSize: '0.8rem',
+                              px: 2,
+                              py: 0.4,
+                              borderRadius: 2,
+                              boxShadow: 'none',
+                              '&:hover': {
+                                boxShadow: '0 2px 8px rgba(46, 125, 50, 0.35)'
+                              }
+                            }}
+                          >
+                            Claimed
+                          </Button>
+                        )}
                         <IconButton
-                          onClick={() => handleEditTransaction(tx)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTransaction(tx);
+                          }}
                           color="primary"
                           size="small"
                           sx={{ bgcolor: '#e3f2fd', '&:hover': { bgcolor: '#bbdefb' } }}
+                          title="Edit Transaction"
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
-                          onClick={() => { setReceiptTx(tx); setOpenReceiptModal(true); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReceiptTx(tx);
+                            setOpenReceiptModal(true);
+                          }}
                           color="default"
                           size="small"
                           sx={{ bgcolor: '#f4f4f5', '&:hover': { bgcolor: '#e4e4e7' } }}
+                          title="View Receipt"
                         >
                           <InfoIcon fontSize="small" sx={{ color: 'text.secondary' }} />
                         </IconButton>
@@ -1233,8 +1361,8 @@ const Transactions = () => {
               <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ec4899' }}>Pickup Status</Typography>
               <Typography variant="body2" sx={{ fontWeight: 'bold', color: receiptTx?.pickedUp ? 'success.main' : 'warning.main' }}>
                 {receiptTx?.pickedUp 
-                  ? `Picked Up (${calculateDurationInShop(receiptTx.createdAt, receiptTx.pickedUpAt)})` 
-                  : `In Shop (${calculateDurationInShop(receiptTx?.createdAt, receiptTx?.pickedUpAt)})`}
+                  ? `Claimed (${calculateDurationInShop(receiptTx.createdAt, receiptTx.pickedUpAt)})` 
+                  : `Unclaimed (${calculateDurationInShop(receiptTx?.createdAt, receiptTx?.pickedUpAt)})`}
               </Typography>
             </Box>
 
@@ -1317,12 +1445,10 @@ const Transactions = () => {
               startIcon={<SuccessIcon />}
               variant="contained"
               color="success"
-              onClick={async () => {
-                await handleMarkAsPickedUp(receiptTx.id);
-                setOpenReceiptModal(false);
-              }}
+              onClick={() => handleInitiateClaim(receiptTx)}
+              sx={{ fontWeight: 'bold' }}
             >
-              Mark as Picked Up
+              Claimed
             </Button>
           )}
           <Button startIcon={<PrintIcon />} variant="outlined" onClick={handlePrintReceipt}>
@@ -1331,6 +1457,73 @@ const Transactions = () => {
           <Button variant="contained" onClick={() => setOpenReceiptModal(false)}>
             Close
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Claim Confirmation Dialog with exact note requested */}
+      <Dialog
+        open={openClaimModal}
+        onClose={() => !claiming && setOpenClaimModal(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, p: 1 }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SuccessIcon color="success" />
+          Confirm Laundry Claim
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 2.5 }}>
+          {targetClaimTx && (
+            <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  {targetClaimTx.customerName || 'Anonymous Customer'}
+                </Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  {formatCurrency(targetClaimTx.totalAmount)}
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Invoice #T-00{targetClaimTx.id} • {targetClaimTx.category || 'laundry'} • {targetClaimTx.date}
+              </Typography>
+            </Box>
+          )}
+
+          <Box sx={{ p: 2, bgcolor: '#e8f5e9', borderRadius: 2, border: '1px solid #c8e6c9', textAlign: 'center' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#1b5e20' }}>
+              Laundry will be marked as claimed
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              The transaction status will update to Claimed and its total amount will be inputted into sales.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', width: '100%', gap: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              disabled={claiming}
+              onClick={() => setOpenClaimModal(false)}
+              sx={{ fontWeight: 'bold', py: 1.2, borderRadius: 2 }}
+            >
+              No
+            </Button>
+            <Button
+              fullWidth
+              variant="contained"
+              color="success"
+              disabled={claiming}
+              onClick={handleConfirmClaim}
+              startIcon={claiming ? <CircularProgress size={18} color="inherit" /> : <SuccessIcon />}
+              sx={{ fontWeight: 'bold', py: 1.2, borderRadius: 2 }}
+            >
+              {claiming ? 'Processing...' : 'Yes'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Box>

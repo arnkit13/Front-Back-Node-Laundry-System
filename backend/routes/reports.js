@@ -36,7 +36,7 @@ async function getFilteredTransactions(branchId) {
     txRes = await query(`
       SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg", 
              t.soap_used_qty as "soapUsedQty", t.machine_number as "machineNumber", 
-             t.total_amount as "totalAmount", b.name as "branchName"
+             t.total_amount as "totalAmount", t.picked_up as "pickedUp", b.name as "branchName"
       FROM laundry_transactions t
       LEFT JOIN branches b ON t.branch_id = b.id
       WHERE t.branch_id = $1
@@ -45,7 +45,7 @@ async function getFilteredTransactions(branchId) {
     txRes = await query(`
       SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg", 
              t.soap_used_qty as "soapUsedQty", t.machine_number as "machineNumber", 
-             t.total_amount as "totalAmount", b.name as "branchName"
+             t.total_amount as "totalAmount", t.picked_up as "pickedUp", b.name as "branchName"
       FROM laundry_transactions t
       LEFT JOIN branches b ON t.branch_id = b.id
     `);
@@ -74,7 +74,10 @@ function generateReportSummaries(transactions, groupingKeyFn, sortingFn) {
     const list = group.transactions;
     const totalKg = list.reduce((sum, curr) => sum + Number(curr.weightKg || 0), 0);
     const totalSoap = list.reduce((sum, curr) => sum + Number(curr.soapUsedQty || 0), 0);
-    const totalRevenue = list.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
+    // Sales are only recognized/inputted once the laundry is claimed / picked up
+    const totalRevenue = list
+      .filter(curr => curr.pickedUp === true)
+      .reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
 
     // Count unique customer names
     const customers = new Set();
@@ -181,7 +184,10 @@ router.get('/monthly', async (req, res) => {
       const list = group.transactions;
       const totalKg = list.reduce((sum, curr) => sum + Number(curr.weightKg || 0), 0);
       const totalSoap = list.reduce((sum, curr) => sum + Number(curr.soapUsedQty || 0), 0);
-      const totalRevenue = list.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
+      // Sales are only recognized/inputted once the laundry is claimed / picked up
+      const totalRevenue = list
+        .filter(curr => curr.pickedUp === true)
+        .reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
 
       const customers = new Set();
       list.forEach(item => {

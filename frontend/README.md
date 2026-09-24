@@ -1,16 +1,44 @@
-# React + Vite
+# 🧺 Laundry Inventory System - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the client-side single page application for the Laundry Inventory & POS Management System, built with **React 19**, **Vite**, and **Material-UI (MUI v9)**.
 
-Currently, two official plugins are available:
+For full system documentation, architecture overview, and API specifications, refer to the root [README.md](../README.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+### 2. Configure Environment
+Copy the example `.env` file:
+```bash
+cp .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Set the backend API URL:
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+### 3. Start Development Server
+```bash
+npm run dev
+```
+
+### 4. Build for Production
+```bash
+npm run build
+```
+
+---
+
+## 📦 Tech Stack
+- **Framework**: React 19 + Vite
+- **UI Components**: Material-UI (MUI v9) & Emotion
+- **State & Routing**: React Router v7 & React Context API
+- **Charts & Visualization**: Recharts
+- **HTTP Client**: Axios

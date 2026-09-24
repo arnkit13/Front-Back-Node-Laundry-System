@@ -20,11 +20,11 @@ router.get('/stats', async (req, res) => {
   try {
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Today's transactions
+    // Today's transactions (Revenue only counted when claimed/picked up)
     let todayQuery = `
       SELECT COALESCE(COUNT(*), 0) as count, 
              COALESCE(SUM(weight_kg), 0) as weight,
-             COALESCE(SUM(total_amount), 0) as revenue
+             COALESCE(SUM(CASE WHEN picked_up = true THEN total_amount ELSE 0 END), 0) as revenue
       FROM laundry_transactions
       WHERE date = $1
     `;
@@ -59,9 +59,9 @@ router.get('/stats', async (req, res) => {
       };
     });
 
-    // All transactions for filtering
+    // All transactions for filtering (including picked_up status)
     let txsQuery = `
-      SELECT date, total_amount as "totalAmount", payment_method as "paymentMethod"
+      SELECT date, total_amount as "totalAmount", payment_method as "paymentMethod", picked_up as "pickedUp"
       FROM laundry_transactions
     `;
     let txsParams = [];
@@ -114,14 +114,15 @@ router.get('/stats', async (req, res) => {
       }
     });
 
-    // Aggregations
-    const totalRevenue = filteredTxs.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
+    // Aggregations - Sales/Revenue only recognized once laundry is claimed / picked up
+    const claimedFilteredTxs = filteredTxs.filter(t => t.pickedUp === true);
+    const totalRevenue = claimedFilteredTxs.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
     const totalExpenses = filteredExpenses.reduce((sum, curr) => sum + Number(curr.amount || 0), 0);
     const netProfit = totalRevenue - totalExpenses;
 
     // incomeByDate (grouped by local Date string, sorted ascending)
     const revenueByDateMap = {};
-    filteredTxs.forEach(t => {
+    claimedFilteredTxs.forEach(t => {
       const dStr = t.date instanceof Date ? t.date.toISOString().split('T')[0] : t.date;
       revenueByDateMap[dStr] = (revenueByDateMap[dStr] || 0) + Number(t.totalAmount || 0);
     });
@@ -161,11 +162,10 @@ router.get('/stats', async (req, res) => {
       expenseByCategory.push({ name: "Other / Miscellaneous", value: otherExpensesSum });
     }
 
-    // incomeByService (revenue by laundry service)
-    // Fetch transaction service items that map to transactions
+    // incomeByService (revenue by laundry service, claimed only)
     let serviceItemsQuery = `
       SELECT i.quantity, i.price_at_transaction as "priceAtTransaction", 
-             s.name as "serviceName", t.date
+             s.name as "serviceName", t.date, t.picked_up as "pickedUp"
       FROM transaction_service_items i
       JOIN laundry_services s ON i.service_id = s.id
       JOIN laundry_transactions t ON i.transaction_id = t.id
@@ -179,7 +179,7 @@ router.get('/stats', async (req, res) => {
     
     const allServiceItems = serviceItemsRes.rows;
     const filteredServiceItems = allServiceItems.filter(item => {
-      if (!item.date) return false;
+      if (!item.date || !item.pickedUp) return false;
       const d = toDate(item.date);
       const y = d.getFullYear();
       const m = d.getMonth() + 1; // 1-based
@@ -199,10 +199,10 @@ router.get('/stats', async (req, res) => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    // Mode of Payment (mopBreakdown)
+    // Mode of Payment (mopBreakdown, claimed only)
     let cashSum = 0.0;
     let gcashSum = 0.0;
-    filteredTxs.forEach(t => {
+    claimedFilteredTxs.forEach(t => {
       const val = Number(t.totalAmount || 0);
       const mop = (t.paymentMethod || '').toLowerCase();
       if (mop === 'cash') {
@@ -220,10 +220,10 @@ router.get('/stats', async (req, res) => {
     const expenseCategoryBreakdown = expenseByCategory.filter(item => item.value > 0);
     const incomeServiceBreakdown = incomeByService.filter(item => item.value > 0);
 
-    // Monthly Financials timeline (past 6 months)
+    // Monthly Financials timeline (past 6 months, claimed only for revenue)
     const monthlyRevenueMap = {};
     allTransactions.forEach(t => {
-      if (t.date && t.totalAmount) {
+      if (t.pickedUp && t.date && t.totalAmount) {
         const d = toDate(t.date);
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         monthlyRevenueMap[ym] = (monthlyRevenueMap[ym] || 0) + Number(t.totalAmount);
