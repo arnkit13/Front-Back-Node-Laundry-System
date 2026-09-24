@@ -42,6 +42,21 @@ export async function runSeeder() {
       ALTER COLUMN weight_kg DROP NOT NULL
     `);
 
+    // Auto-mark transactions unclaimed for 2+ weeks (14 days) as claimed
+    const autoClaimRes = await client.query(`
+      UPDATE laundry_transactions 
+      SET picked_up = true, 
+          picked_up_at = COALESCE(created_at, date::timestamp, NOW()) 
+      WHERE (picked_up = false OR picked_up IS NULL) 
+        AND (
+          created_at <= NOW() - INTERVAL '14 days' 
+          OR (created_at IS NULL AND date <= CURRENT_DATE - 14)
+        )
+    `);
+    if (autoClaimRes.rowCount > 0) {
+      console.log(`Auto-marked ${autoClaimRes.rowCount} legacy transactions older than 2 weeks as claimed.`);
+    }
+
 
     // 0. Clean up static/mock soap products if present
     const staticsToDelete = [

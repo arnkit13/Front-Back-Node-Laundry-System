@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../config/db.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { autoClaimOldTransactions } from './transactions.js';
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ function getSortableMonthString(dateObj) {
 }
 
 async function getFilteredTransactions(branchId) {
+  await autoClaimOldTransactions();
   let txRes;
   if (branchId) {
     txRes = await query(`

@@ -67,11 +67,51 @@ const assembleTransactionObj = (row, serviceItems = []) => {
   };
 };
 
+// Helper to auto-mark transactions unclaimed for 2+ weeks (14 days) as claimed
+export const autoClaimOldTransactions = async () => {
+  try {
+    const res = await query(`
+      UPDATE laundry_transactions 
+      SET picked_up = true, 
+          picked_up_at = COALESCE(created_at, date::timestamp, NOW()) 
+      WHERE (picked_up = false OR picked_up IS NULL) 
+        AND (
+          created_at <= NOW() - INTERVAL '14 days' 
+          OR (created_at IS NULL AND date <= CURRENT_DATE - 14)
+        )
+    `);
+    if (res.rowCount > 0) {
+      console.log(`Auto-claimed ${res.rowCount} transactions older than 2 weeks.`);
+    }
+    return res.rowCount;
+  } catch (err) {
+    console.error("Auto-claim query error:", err);
+    return 0;
+  }
+};
+
+// POST /api/transactions/auto-claim-old (Authenticated)
+router.post('/auto-claim-old', async (req, res) => {
+  try {
+    const updatedCount = await autoClaimOldTransactions();
+    return res.json({
+      message: `Marked ${updatedCount} transactions older than 2 weeks as claimed.`,
+      updatedCount
+    });
+  } catch (err) {
+    console.error("Manual auto-claim error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // GET /api/transactions (Authenticated)
 router.get('/', async (req, res) => {
   const isAdmin = req.user.role === 'ROLE_ADMIN';
   
   try {
+    // Automatically ensure transactions older than 2 weeks are marked as claimed
+    await autoClaimOldTransactions();
+
     let txRes;
     if (isAdmin) {
       txRes = await query(`
