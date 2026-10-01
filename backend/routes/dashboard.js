@@ -1,7 +1,6 @@
 import express from 'express';
 import { query } from '../config/db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { autoClaimOldTransactions } from './transactions.js';
 
 const router = express.Router();
 
@@ -19,7 +18,6 @@ router.get('/stats', async (req, res) => {
   const targetMonth = isAnnual ? 0 : reqMonth;
 
   try {
-    await autoClaimOldTransactions();
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Today's transactions (Revenue only counted when claimed/picked up)

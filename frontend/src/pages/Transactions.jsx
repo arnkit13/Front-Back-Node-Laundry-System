@@ -536,7 +536,7 @@ const Transactions = () => {
 
       {claimFilter === 'unclaimed' && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, fontStyle: 'italic' }}>
-          * Active orders awaiting pickup. Orders unclaimed for 2+ weeks are automatically marked as claimed.
+          * Active orders awaiting pickup.
         </Typography>
       )}
 
