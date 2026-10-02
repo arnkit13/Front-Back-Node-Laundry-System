@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import {
   Warning as WarningIcon,
+  Store as BranchIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -44,6 +45,8 @@ const COLORS = ['#0b5394', '#00bcd4', '#8fce00', '#ffd666', '#f44336', '#9c27b0'
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -51,6 +54,7 @@ const AdminDashboard = () => {
   const [filterType, setFilterType] = useState('monthly'); // 'monthly' | 'annual'
   
   const currentLocalDate = new Date();
+  const todayStr = currentLocalDate.toISOString().split('T')[0];
   const [selectedMonth, setSelectedMonth] = useState(currentLocalDate.getMonth() + 1); // 1-12
   const [selectedYear, setSelectedYear] = useState(currentLocalDate.getFullYear());
 
@@ -71,10 +75,28 @@ const AdminDashboard = () => {
 
   const yearsList = [2024, 2025, 2026, 2027, 2028];
 
+  const fetchBranches = async () => {
+    try {
+      const response = await api.get('/api/branches');
+      if (response.data && Array.isArray(response.data)) {
+        setBranches(response.data);
+      } else {
+        setBranches([]);
+      }
+    } catch (err) {
+      console.error('Failed to load branches', err);
+      setBranches([]);
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const mParam = filterType === 'annual' ? 0 : selectedMonth;
-      const response = await api.get(`/api/dashboard/stats?year=${selectedYear}&month=${mParam}`);
+      let url = `/api/dashboard/stats?year=${selectedYear}&month=${mParam}`;
+      if (selectedBranchId) {
+        url += `&branchId=${selectedBranchId}`;
+      }
+      const response = await api.get(url);
       setStats(response.data);
     } catch (err) {
       setError('Failed to fetch dashboard statistics.');
@@ -83,13 +105,17 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  useEffect(() => {
     const loadStats = async () => {
       setLoading(true);
       await fetchStats();
       setLoading(false);
     };
     loadStats();
-  }, [filterType, selectedMonth, selectedYear]);
+  }, [filterType, selectedMonth, selectedYear, selectedBranchId]);
 
   if (loading) {
     return (
@@ -116,12 +142,45 @@ const AdminDashboard = () => {
               : `ANNUAL REPORT ${selectedYear}`}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
-            Tacky's Laundry • Manager Overview
+            Tacky's Laundry • Manager Overview {selectedBranchId ? `• ${branches.find(b => b.id === selectedBranchId)?.name || 'Branch'}` : '• All Branches'}
           </Typography>
         </Box>
         
         {/* Inline Controls */}
-        <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+          {/* Branch Filter */}
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <Select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              displayEmpty
+              startAdornment={
+                <BranchIcon fontSize="small" sx={{ color: 'text.secondary', mr: 0.75 }} />
+              }
+              sx={{
+                borderRadius: 2,
+                height: 36,
+                bgcolor: 'background.paper',
+                fontWeight: 'bold',
+                fontSize: '0.82rem',
+                '& .MuiSelect-select': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  py: 0.5,
+                }
+              }}
+            >
+              <MenuItem value="">
+                <em>All Branches</em>
+              </MenuItem>
+              {branches.map((b) => (
+                <MenuItem key={b.id} value={b.id} sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                  {b.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <ToggleButtonGroup
             value={filterType}
             exclusive
@@ -141,6 +200,7 @@ const AdminDashboard = () => {
                 fontWeight: 'bold',
                 px: 2,
                 py: 0.5,
+                fontSize: '0.82rem',
               }
             }}
           >
@@ -153,10 +213,10 @@ const AdminDashboard = () => {
               <Select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                sx={{ borderRadius: 2, height: 36 }}
+                sx={{ borderRadius: 2, height: 36, bgcolor: 'background.paper', fontWeight: 'bold', fontSize: '0.82rem' }}
               >
                 {monthsList.map((m) => (
-                  <MenuItem key={m.value} value={m.value}>
+                  <MenuItem key={m.value} value={m.value} sx={{ fontSize: '0.82rem' }}>
                     {m.label}
                   </MenuItem>
                 ))}
@@ -168,10 +228,10 @@ const AdminDashboard = () => {
             <Select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              sx={{ borderRadius: 2, height: 36 }}
+              sx={{ borderRadius: 2, height: 36, bgcolor: 'background.paper', fontWeight: 'bold', fontSize: '0.82rem' }}
             >
               {yearsList.map((y) => (
-                <MenuItem key={y} value={y}>
+                <MenuItem key={y} value={y} sx={{ fontSize: '0.82rem' }}>
                   {y}
                 </MenuItem>
               ))}
@@ -247,67 +307,117 @@ const AdminDashboard = () => {
         <Grid item xs={12} lg={8}>
           <Stack spacing={2}>
             
-            {/* CASHFLOW METRIC CARDS - Rendered on a single row (xs={4}) */}
+            {/* CASHFLOW METRIC CARDS - Rendered on 4 cards grid */}
             <Box>
               <Grid container spacing={2} sx={{ width: '100%', m: 0 }}>
-                {/* INCOME */}
-                <Grid item xs={4}>
+                {/* DAILY INCOME */}
+                <Grid item xs={6} sm={6} md={3}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      border: '1.5px solid #90caf9',
+                      bgcolor: '#f0f7ff',
+                      boxShadow: 'none',
+                      height: '100%',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography color="#0d47a1" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.72rem', display: 'block', lineHeight: 1.2 }}>
+                          DAILY INCOME
+                        </Typography>
+                        <Chip
+                          label="Today"
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: '0.62rem',
+                            fontWeight: 'bold',
+                            bgcolor: '#bbdefb',
+                            color: '#0d47a1'
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.3, color: '#0d47a1', fontSize: { xs: '1.15rem', xl: '1.35rem' }, whiteSpace: 'nowrap' }}>
+                        {formatCurrency(stats?.totalRevenueToday)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#1565c0', fontWeight: 500, display: 'block', mt: 0.3, fontSize: '0.7rem' }}>
+                        {stats?.totalTransactionsToday || 0} washes recorded
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* PERIOD / TOTAL INCOME */}
+                <Grid item xs={6} sm={6} md={3}>
                   <Card
                     sx={{
                       borderRadius: 3,
                       border: '1.5px solid #d4e157',
                       bgcolor: '#f1f8e9',
                       boxShadow: 'none',
+                      height: '100%',
                     }}
                   >
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block', lineHeight: 1.2 }}>
-                        INCOME
+                      <Typography color="#33691e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.72rem', display: 'block', lineHeight: 1.2 }}>
+                        {filterType === 'annual' ? 'ANNUAL INCOME' : 'MONTHLY INCOME'}
                       </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.2, color: '#33691e', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.3, color: '#33691e', fontSize: { xs: '1.15rem', xl: '1.35rem' }, whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.totalRevenue)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#558b2f', fontWeight: 500, display: 'block', mt: 0.3, fontSize: '0.7rem' }}>
+                        {filterType === 'annual' ? `${selectedYear} total revenue` : `${monthsList.find(m => m.value === selectedMonth)?.label} revenue`}
                       </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
 
                 {/* EXPENSES */}
-                <Grid item xs={4}>
+                <Grid item xs={6} sm={6} md={3}>
                   <Card
                     sx={{
                       borderRadius: 3,
                       border: '1.5px solid #f8b4b4',
                       bgcolor: '#fde8e8',
                       boxShadow: 'none',
+                      height: '100%',
                     }}
                   >
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block', lineHeight: 1.2 }}>
-                        EXPENSES
+                      <Typography color="#c81e1e" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.72rem', display: 'block', lineHeight: 1.2 }}>
+                        {filterType === 'annual' ? 'ANNUAL EXPENSES' : 'MONTHLY EXPENSES'}
                       </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.2, color: '#c81e1e', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.3, color: '#c81e1e', fontSize: { xs: '1.15rem', xl: '1.35rem' }, whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.totalExpenses)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#b71c1c', fontWeight: 500, display: 'block', mt: 0.3, fontSize: '0.7rem' }}>
+                        {stats?.expenseCategoryBreakdown?.length || 0} categories tracked
                       </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
 
                 {/* PROFIT */}
-                <Grid item xs={4}>
+                <Grid item xs={6} sm={6} md={3}>
                   <Card
                     sx={{
                       borderRadius: 3,
                       border: '1.5px solid #80cbc4',
                       bgcolor: '#e0f2f1',
                       boxShadow: 'none',
+                      height: '100%',
                     }}
                   >
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.75rem', display: 'block', lineHeight: 1.2 }}>
-                        PROFIT
+                      <Typography color="#004d40" variant="overline" sx={{ fontWeight: 'bold', fontSize: '0.72rem', display: 'block', lineHeight: 1.2 }}>
+                        NET PROFIT
                       </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.2, color: '#004d40', fontSize: '1.4rem', whiteSpace: 'nowrap' }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 0.3, color: '#004d40', fontSize: { xs: '1.15rem', xl: '1.35rem' }, whiteSpace: 'nowrap' }}>
                         {formatCurrency(stats?.netProfit)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#004d40', fontWeight: 500, display: 'block', mt: 0.3, fontSize: '0.7rem' }}>
+                        {(stats?.netProfit || 0) >= 0 ? 'Net positive margin' : 'Net negative margin'}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -448,7 +558,7 @@ const AdminDashboard = () => {
                 variant="fullWidth"
                 sx={{ borderBottom: 1, borderColor: 'divider', mb: 1.5, minHeight: 36, '& .MuiTab-root': { py: 0.5, minHeight: 36, fontSize: '0.75rem', fontWeight: 'bold' } }}
               >
-                <Tab label="Income By Date" />
+                <Tab label="Daily Income" />
                 <Tab label="Expenses" />
                 <Tab label="By Service" />
               </Tabs>
@@ -460,21 +570,33 @@ const AdminDashboard = () => {
                       <TableHead>
                         <TableRow>
                           <TableCell sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Date</TableCell>
-                          <TableCell align="right" sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Amount</TableCell>
+                          <TableCell align="right" sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 'bold', fontSize: '0.75rem', py: 1 }}>Daily Income</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {stats?.incomeByDate && stats.incomeByDate.length > 0 ? (
-                          stats.incomeByDate.map((row) => (
-                            <TableRow key={row.name} hover>
-                              <TableCell sx={{ fontSize: '0.8rem', py: 0.8 }}>{row.name}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.8rem', py: 0.8 }}>{formatCurrency(row.value)}</TableCell>
-                            </TableRow>
-                          ))
+                          stats.incomeByDate.map((row) => {
+                            const isToday = row.name === todayStr;
+                            return (
+                              <TableRow key={row.name} hover sx={isToday ? { bgcolor: '#f0f7ff' } : {}}>
+                                <TableCell sx={{ fontSize: '0.8rem', py: 0.8 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                    <span>{row.name}</span>
+                                    {isToday && (
+                                      <Chip label="Today" size="small" color="primary" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 'bold' }} />
+                                    )}
+                                  </Box>
+                                </TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.8rem', py: 0.8, color: '#1b5e20' }}>
+                                  {formatCurrency(row.value)}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         ) : (
                           <TableRow>
                             <TableCell colSpan={2} align="center" sx={{ py: 3, color: 'text.secondary', fontSize: '0.8rem' }}>
-                              No transactions recorded.
+                              No transactions recorded for this period.
                             </TableCell>
                           </TableRow>
                         )}
