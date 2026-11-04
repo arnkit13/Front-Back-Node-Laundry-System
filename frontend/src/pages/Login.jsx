@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import {
   Box,
   Card,
@@ -13,13 +14,14 @@ import {
   InputAdornment,
   IconButton,
   Avatar,
+  Collapse,
 } from '@mui/material';
 import {
-  LocalLaundryService as LaundryIcon,
   Visibility,
   VisibilityOff,
   LockOutlined,
   PersonOutlined,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 
 const Login = () => {
@@ -28,7 +30,9 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
+  const [slowNotice, setSlowNotice] = useState(false);
+  const slowTimerRef = useRef(null);
+
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,8 +44,18 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Silently wake up server on page load (eliminates cold-start delays while user types credentials)
+  useEffect(() => {
+    api.get('/api/health').catch(() => {
+      // Ignored: silent background wake-up ping
+    });
+  }, []);
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+
     if (!username || !password) {
       setError('Please fill in all fields.');
       return;
@@ -49,6 +63,12 @@ const Login = () => {
 
     setError('');
     setSubmitting(true);
+    setSlowNotice(false);
+
+    // If server takes longer than 4s (cloud cold start or initial DB connection), show notice
+    slowTimerRef.current = setTimeout(() => {
+      setSlowNotice(true);
+    }, 4000);
 
     try {
       await login(username, password);
@@ -57,6 +77,10 @@ const Login = () => {
     } catch (err) {
       setError(err || 'Failed to authenticate. Try again.');
     } finally {
+      if (slowTimerRef.current) {
+        clearTimeout(slowTimerRef.current);
+      }
+      setSlowNotice(false);
       setSubmitting(false);
     }
   };
@@ -128,11 +152,35 @@ const Login = () => {
             </Typography>
           </Box>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-              {error}
+          <Collapse in={!!error}>
+            {error && (
+              <Alert
+                severity="error"
+                sx={{ mb: 3, borderRadius: 2 }}
+                action={
+                  error.includes('timed out') || error.includes('unreachable') || error.includes('connect') ? (
+                    <Button
+                      color="inherit"
+                      size="small"
+                      startIcon={<RefreshIcon />}
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                    >
+                      Retry
+                    </Button>
+                  ) : null
+                }
+              >
+                {error}
+              </Alert>
+            )}
+          </Collapse>
+
+          <Collapse in={slowNotice}>
+            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+              Connecting to server... If the server was idle, warming up cloud hosting takes about 30–60 seconds. Please keep this open.
             </Alert>
-          )}
+          </Collapse>
 
           {/* Form */}
           <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -206,7 +254,14 @@ const Login = () => {
                 borderRadius: 2,
               }}
             >
-              {submitting ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
+              {submitting ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={20} color="inherit" />
+                  <span>{slowNotice ? 'Waking up server...' : 'Connecting...'}</span>
+                </Box>
+              ) : (
+                'Log In'
+              )}
             </Button>
           </Box>
         </CardContent>

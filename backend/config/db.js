@@ -24,8 +24,9 @@ try {
     ssl: {
       rejectUnauthorized: false
     },
-    max: 3,
-    idleTimeoutMillis: 10000
+    max: 5,
+    idleTimeoutMillis: 60000,
+    connectionTimeoutMillis: 20000
   };
 } catch (err) {
   console.warn("Could not parse database URL as a connection string, falling back to raw connectionString option:", err.message);
@@ -34,8 +35,9 @@ try {
     ssl: {
       rejectUnauthorized: false
     },
-    max: 3,
-    idleTimeoutMillis: 10000
+    max: 5,
+    idleTimeoutMillis: 60000,
+    connectionTimeoutMillis: 20000
   };
 }
 

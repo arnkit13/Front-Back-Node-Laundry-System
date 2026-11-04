@@ -5,8 +5,10 @@ const postData = JSON.stringify({
   password: 'admin123'
 });
 
+const targetHost = process.env.TEST_HOST || process.env.RAILWAY_PUBLIC_DOMAIN || 'laundryinventorysystem.up.railway.app';
+
 const options = {
-  hostname: 'laundryinventorysystem.onrender.com',
+  hostname: targetHost.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
   port: 443,
   path: '/api/auth/login',
   method: 'POST',

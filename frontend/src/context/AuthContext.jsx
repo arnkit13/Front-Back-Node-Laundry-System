@@ -17,9 +17,26 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    try {
+    const doLogin = async () => {
       const response = await api.post('/api/auth/login', { username, password });
-      const userData = response.data;
+      return response.data;
+    };
+
+    try {
+      let userData;
+      try {
+        userData = await doLogin();
+      } catch (firstErr) {
+        // If timed out or unreachable due to cloud cold-start, auto-retry once
+        if (firstErr.code === 'ECONNABORTED' || firstErr.message?.toLowerCase().includes('timeout') || !firstErr.response) {
+          console.warn('Initial login connection delayed or timed out. Auto-retrying once...');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          userData = await doLogin();
+        } else {
+          throw firstErr;
+        }
+      }
+
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
       return userData;

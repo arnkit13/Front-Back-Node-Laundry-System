@@ -60,6 +60,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check and root ping endpoints
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
+app.get('/', (req, res) => {
+  res.status(200).send('Laundry Inventory Management System API is live and healthy.');
+});
+
 // Register Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -84,6 +93,29 @@ runSeeder()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server is running successfully on port ${PORT}`);
+
+      // Auto keep-alive for Railway or cloud hosting (pings self every 14 mins to avoid idling/sleeping)
+      const selfUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : (process.env.RENDER_EXTERNAL_URL || process.env.APP_URL);
+      if (selfUrl) {
+        console.log(`Keep-alive monitor initialized for host: ${selfUrl}`);
+        setInterval(async () => {
+          try {
+            const pingUrl = `${selfUrl.replace(/\/$/, '')}/api/health`;
+            const https = await import('https');
+            const http = await import('http');
+            const client = pingUrl.startsWith('https') ? https : http;
+            client.get(pingUrl, (res) => {
+              console.log(`[Keep-Alive] Pinged ${pingUrl} - Status: ${res.statusCode}`);
+            }).on('error', (e) => {
+              console.warn(`[Keep-Alive] Ping warning: ${e.message}`);
+            });
+          } catch (e) {
+            console.warn(`[Keep-Alive] Ping error: ${e.message}`);
+          }
+        }, 14 * 60 * 1000);
+      }
     });
   })
   .catch(err => {
