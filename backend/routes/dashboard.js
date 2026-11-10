@@ -27,8 +27,7 @@ router.get('/stats', async (req, res) => {
     // Get today's date in Philippine time (UTC+8)
     const todayStr = getPHToday();
 
-    // Today's income: count transactions CLAIMED today (picked_up_at date in PH time = today)
-    // Revenue only counted when claimed/picked up.
+    // Today's transactions — count all drop-offs today
     let todayQuery = `
       SELECT COALESCE(COUNT(*), 0) as count, 
              COALESCE(SUM(weight_kg), 0) as weight,
@@ -44,21 +43,7 @@ router.get('/stats', async (req, res) => {
     const todayTxsRes = await query(todayQuery, todayParams);
     const totalTransactionsToday = parseInt(todayTxsRes.rows[0].count, 10);
     const totalKgWashedToday = Number(todayTxsRes.rows[0].weight);
-
-    // Today's REVENUE: transactions claimed today (picked_up_at converted to PH date = todayStr)
-    let todayRevenueQuery = `
-      SELECT COALESCE(SUM(total_amount), 0) as revenue
-      FROM laundry_transactions
-      WHERE picked_up = true
-        AND (picked_up_at AT TIME ZONE 'Asia/Manila')::date::text = $1
-    `;
-    let todayRevenueParams = [todayStr];
-    if (branchId) {
-      todayRevenueQuery += ` AND branch_id = $2`;
-      todayRevenueParams.push(branchId);
-    }
-    const todayRevenueRes = await query(todayRevenueQuery, todayRevenueParams);
-    const totalRevenueToday = Number(todayRevenueRes.rows[0].revenue);
+    const totalRevenueToday = Number(todayTxsRes.rows[0].revenue);
     const totalCustomersToday = totalTransactionsToday;
 
     // Soap stocks status
@@ -81,16 +66,10 @@ router.get('/stats', async (req, res) => {
       };
     });
 
-    // All transactions — fetch:
-    //   dateStr     = drop-off date (for transaction count/kg filtering by month)
-    //   claimDateStr= date money was received (picked_up_at in PH time) for income grouping
+    // All transactions — fetch date as plain text to avoid pg driver UTC shift
+    // Income is counted on the drop-off date (date column) when the transaction is claimed (picked_up = true)
     let txsQuery = `
-      SELECT date::text as "dateStr",
-             CASE WHEN picked_up = true AND picked_up_at IS NOT NULL
-               THEN (picked_up_at AT TIME ZONE 'Asia/Manila')::date::text
-               ELSE NULL
-             END as "claimDateStr",
-             total_amount as "totalAmount", 
+      SELECT date::text as "dateStr", total_amount as "totalAmount", 
              payment_method as "paymentMethod", picked_up as "pickedUp"
       FROM laundry_transactions
     `;
@@ -115,21 +94,10 @@ router.get('/stats', async (req, res) => {
     const expensesRes = await query(expensesQuery, expensesParams);
     const allExpenses = expensesRes.rows;
 
-    // Filter transactions by year/month using the DROP-OFF dateStr for transaction counts
+    // Filter transactions by year/month using the dateStr 'YYYY-MM-DD'
     const filteredTxs = allTransactions.filter(t => {
       if (!t.dateStr) return false;
       const [y, m] = t.dateStr.split('-').map(Number);
-      if (isAnnual) {
-        return y === targetYear;
-      } else {
-        return y === targetYear && m === targetMonth;
-      }
-    });
-
-    // Claimed transactions filtered by CLAIM date (picked_up_at in PH time) for income
-    const claimedByClaimDate = allTransactions.filter(t => {
-      if (!t.pickedUp || !t.claimDateStr) return false;
-      const [y, m] = t.claimDateStr.split('-').map(Number);
       if (isAnnual) {
         return y === targetYear;
       } else {
@@ -148,15 +116,16 @@ router.get('/stats', async (req, res) => {
       }
     });
 
-    // Aggregations — revenue only when claimed, grouped by claim date
-    const totalRevenue = claimedByClaimDate.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
+    // Aggregations — revenue only when claimed/picked up
+    const claimedFilteredTxs = filteredTxs.filter(t => t.pickedUp === true);
+    const totalRevenue = claimedFilteredTxs.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
     const totalExpenses = filteredExpenses.reduce((sum, curr) => sum + Number(curr.amount || 0), 0);
     const netProfit = totalRevenue - totalExpenses;
 
-    // incomeByDate: grouped by CLAIM date (the day money was actually received), sorted ascending
+    // incomeByDate — grouped by drop-off date, only claimed transactions, sorted ascending
     const revenueByDateMap = {};
-    claimedByClaimDate.forEach(t => {
-      const dStr = t.claimDateStr;
+    claimedFilteredTxs.forEach(t => {
+      const dStr = t.dateStr;
       revenueByDateMap[dStr] = (revenueByDateMap[dStr] || 0) + Number(t.totalAmount || 0);
     });
     const incomeByDate = Object.entries(revenueByDateMap)
@@ -195,15 +164,10 @@ router.get('/stats', async (req, res) => {
       expenseByCategory.push({ name: "Other / Miscellaneous", value: otherExpensesSum });
     }
 
-    // incomeByService: revenue by laundry service, claimed only, grouped by claim date month
+    // incomeByService (revenue by laundry service, claimed only)
     let serviceItemsQuery = `
       SELECT i.quantity, i.price_at_transaction as "priceAtTransaction", 
-             s.name as "serviceName", t.date::text as "dateStr",
-             CASE WHEN t.picked_up = true AND t.picked_up_at IS NOT NULL
-               THEN (t.picked_up_at AT TIME ZONE 'Asia/Manila')::date::text
-               ELSE NULL
-             END as "claimDateStr",
-             t.picked_up as "pickedUp"
+             s.name as "serviceName", t.date::text as "dateStr", t.picked_up as "pickedUp"
       FROM transaction_service_items i
       JOIN laundry_services s ON i.service_id = s.id
       JOIN laundry_transactions t ON i.transaction_id = t.id
@@ -216,10 +180,9 @@ router.get('/stats', async (req, res) => {
     const serviceItemsRes = await query(serviceItemsQuery, serviceItemsParams);
     const allServiceItems = serviceItemsRes.rows;
 
-    // Filter service items by CLAIM date month
     const filteredServiceItems = allServiceItems.filter(item => {
-      if (!item.pickedUp || !item.claimDateStr) return false;
-      const [y, m] = item.claimDateStr.split('-').map(Number);
+      if (!item.dateStr || !item.pickedUp) return false;
+      const [y, m] = item.dateStr.split('-').map(Number);
       if (isAnnual) {
         return y === targetYear;
       } else {
@@ -236,10 +199,10 @@ router.get('/stats', async (req, res) => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    // Mode of Payment (mopBreakdown, claimed only, by claim date month)
+    // Mode of Payment (mopBreakdown, claimed only)
     let cashSum = 0.0;
     let gcashSum = 0.0;
-    claimedByClaimDate.forEach(t => {
+    claimedFilteredTxs.forEach(t => {
       const val = Number(t.totalAmount || 0);
       const mop = (t.paymentMethod || '').toLowerCase();
       if (mop === 'cash') {
@@ -257,11 +220,11 @@ router.get('/stats', async (req, res) => {
     const expenseCategoryBreakdown = expenseByCategory.filter(item => item.value > 0);
     const incomeServiceBreakdown = incomeByService.filter(item => item.value > 0);
 
-    // Monthly Financials timeline (past 6 months, claimed only for revenue, grouped by CLAIM date month)
+    // Monthly Financials timeline (past 6 months, claimed only for revenue)
     const monthlyRevenueMap = {};
     allTransactions.forEach(t => {
-      if (t.pickedUp && t.claimDateStr && t.totalAmount) {
-        const ym = t.claimDateStr.substring(0, 7); // 'YYYY-MM'
+      if (t.pickedUp && t.dateStr && t.totalAmount) {
+        const ym = t.dateStr.substring(0, 7); // 'YYYY-MM'
         monthlyRevenueMap[ym] = (monthlyRevenueMap[ym] || 0) + Number(t.totalAmount);
       }
     });
