@@ -8,6 +8,12 @@ router.use(authenticateToken);
 
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+// Helper: get today's date string in Philippine time (UTC+8) as YYYY-MM-DD
+const getPHToday = () => {
+  const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  return nowPH.toISOString().split('T')[0];
+};
+
 router.get('/stats', async (req, res) => {
   let reqYear = req.query.year ? parseInt(req.query.year, 10) : null;
   let reqMonth = req.query.month ? parseInt(req.query.month, 10) : null;
@@ -18,15 +24,18 @@ router.get('/stats', async (req, res) => {
   const targetMonth = isAnnual ? 0 : reqMonth;
 
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Get today's date in Philippine time (UTC+8)
+    const todayStr = getPHToday();
 
-    // Today's transactions (Revenue only counted when claimed/picked up)
+    // Today's transactions (Revenue only counted when claimed/picked up).
+    // Use date::text to get the raw 'YYYY-MM-DD' string stored in the DB without
+    // the pg driver's UTC midnight timezone shift.
     let todayQuery = `
       SELECT COALESCE(COUNT(*), 0) as count, 
              COALESCE(SUM(weight_kg), 0) as weight,
              COALESCE(SUM(CASE WHEN picked_up = true THEN total_amount ELSE 0 END), 0) as revenue
       FROM laundry_transactions
-      WHERE date = $1
+      WHERE date::text = $1
     `;
     let todayParams = [todayStr];
     if (branchId) {
@@ -59,9 +68,10 @@ router.get('/stats', async (req, res) => {
       };
     });
 
-    // All transactions for filtering (including picked_up status)
+    // All transactions — fetch date as plain text to avoid pg driver UTC shift
     let txsQuery = `
-      SELECT date, total_amount as "totalAmount", payment_method as "paymentMethod", picked_up as "pickedUp"
+      SELECT date::text as "dateStr", total_amount as "totalAmount", 
+             payment_method as "paymentMethod", picked_up as "pickedUp"
       FROM laundry_transactions
     `;
     let txsParams = [];
@@ -72,9 +82,9 @@ router.get('/stats', async (req, res) => {
     const txsRes = await query(txsQuery, txsParams);
     const allTransactions = txsRes.rows;
 
-    // All expenses for filtering
+    // All expenses
     let expensesQuery = `
-      SELECT category, amount, date
+      SELECT category, amount, date::text as "dateStr"
       FROM expenses
     `;
     let expensesParams = [];
@@ -85,15 +95,10 @@ router.get('/stats', async (req, res) => {
     const expensesRes = await query(expensesQuery, expensesParams);
     const allExpenses = expensesRes.rows;
 
-    // Helper: Parse postgres Date or date-string to JS Date safely
-    const toDate = (dVal) => dVal instanceof Date ? dVal : new Date(dVal);
-
-    // Filter transactions
+    // Filter transactions by year/month using the dateStr 'YYYY-MM-DD'
     const filteredTxs = allTransactions.filter(t => {
-      if (!t.date) return false;
-      const d = toDate(t.date);
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1; // 1-based
+      if (!t.dateStr) return false;
+      const [y, m] = t.dateStr.split('-').map(Number);
       if (isAnnual) {
         return y === targetYear;
       } else {
@@ -101,12 +106,10 @@ router.get('/stats', async (req, res) => {
       }
     });
 
-    // Filter expenses
+    // Filter expenses by year/month
     const filteredExpenses = allExpenses.filter(e => {
-      if (!e.date) return false;
-      const d = toDate(e.date);
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1; // 1-based
+      if (!e.dateStr) return false;
+      const [y, m] = e.dateStr.split('-').map(Number);
       if (isAnnual) {
         return y === targetYear;
       } else {
@@ -114,16 +117,16 @@ router.get('/stats', async (req, res) => {
       }
     });
 
-    // Aggregations - Sales/Revenue only recognized once laundry is claimed / picked up
+    // Aggregations — revenue only when claimed/picked up
     const claimedFilteredTxs = filteredTxs.filter(t => t.pickedUp === true);
     const totalRevenue = claimedFilteredTxs.reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
     const totalExpenses = filteredExpenses.reduce((sum, curr) => sum + Number(curr.amount || 0), 0);
     const netProfit = totalRevenue - totalExpenses;
 
-    // incomeByDate (grouped by local Date string, sorted ascending)
+    // incomeByDate (grouped by date string, sorted ascending)
     const revenueByDateMap = {};
     claimedFilteredTxs.forEach(t => {
-      const dStr = t.date instanceof Date ? t.date.toISOString().split('T')[0] : t.date;
+      const dStr = t.dateStr;
       revenueByDateMap[dStr] = (revenueByDateMap[dStr] || 0) + Number(t.totalAmount || 0);
     });
     const incomeByDate = Object.entries(revenueByDateMap)
@@ -165,7 +168,7 @@ router.get('/stats', async (req, res) => {
     // incomeByService (revenue by laundry service, claimed only)
     let serviceItemsQuery = `
       SELECT i.quantity, i.price_at_transaction as "priceAtTransaction", 
-             s.name as "serviceName", t.date, t.picked_up as "pickedUp"
+             s.name as "serviceName", t.date::text as "dateStr", t.picked_up as "pickedUp"
       FROM transaction_service_items i
       JOIN laundry_services s ON i.service_id = s.id
       JOIN laundry_transactions t ON i.transaction_id = t.id
@@ -176,13 +179,11 @@ router.get('/stats', async (req, res) => {
       serviceItemsParams.push(branchId);
     }
     const serviceItemsRes = await query(serviceItemsQuery, serviceItemsParams);
-    
     const allServiceItems = serviceItemsRes.rows;
+
     const filteredServiceItems = allServiceItems.filter(item => {
-      if (!item.date || !item.pickedUp) return false;
-      const d = toDate(item.date);
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1; // 1-based
+      if (!item.dateStr || !item.pickedUp) return false;
+      const [y, m] = item.dateStr.split('-').map(Number);
       if (isAnnual) {
         return y === targetYear;
       } else {
@@ -223,18 +224,16 @@ router.get('/stats', async (req, res) => {
     // Monthly Financials timeline (past 6 months, claimed only for revenue)
     const monthlyRevenueMap = {};
     allTransactions.forEach(t => {
-      if (t.pickedUp && t.date && t.totalAmount) {
-        const d = toDate(t.date);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (t.pickedUp && t.dateStr && t.totalAmount) {
+        const ym = t.dateStr.substring(0, 7); // 'YYYY-MM'
         monthlyRevenueMap[ym] = (monthlyRevenueMap[ym] || 0) + Number(t.totalAmount);
       }
     });
 
     const monthlyExpensesMap = {};
     allExpenses.forEach(e => {
-      if (e.date && e.amount) {
-        const d = toDate(e.date);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (e.dateStr && e.amount) {
+        const ym = e.dateStr.substring(0, 7); // 'YYYY-MM'
         monthlyExpensesMap[ym] = (monthlyExpensesMap[ym] || 0) + Number(e.amount);
       }
     });

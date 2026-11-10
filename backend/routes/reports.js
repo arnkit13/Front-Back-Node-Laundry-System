@@ -8,8 +8,10 @@ router.use(authenticateToken);
 router.use(requireRole('ROLE_ADMIN'));
 
 // ISO-8601 Week string generator: YYYY-Www
-function getISOWeekString(dateObj) {
-  const d = new Date(dateObj);
+// dateStr is a plain 'YYYY-MM-DD' string from date::text
+function getISOWeekString(dateStr) {
+  if (!dateStr) return 'Unknown';
+  const d = new Date(dateStr + 'T00:00:00'); // parse as local midnight (no TZ shift)
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
   const week1 = new Date(d.getFullYear(), 0, 4);
@@ -20,21 +22,23 @@ function getISOWeekString(dateObj) {
 
 // Month name and year generator: "MMMM YYYY"
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-function getMonthYearString(dateObj) {
-  const d = new Date(dateObj);
-  return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+function getMonthYearString(dateStr) {
+  if (!dateStr) return 'Unknown';
+  const [, m] = dateStr.split('-').map(Number);
+  const y = parseInt(dateStr.split('-')[0], 10);
+  return `${monthNames[m - 1]} ${y}`;
 }
 
-function getSortableMonthString(dateObj) {
-  const d = new Date(dateObj);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+function getSortableMonthString(dateStr) {
+  if (!dateStr) return 'Unknown';
+  return dateStr.substring(0, 7); // 'YYYY-MM'
 }
 
 async function getFilteredTransactions(branchId) {
   let txRes;
   if (branchId) {
     txRes = await query(`
-      SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg", 
+      SELECT t.id, t.date::text as "dateStr", t.customer_name as "customerName", t.weight_kg as "weightKg", 
              t.soap_used_qty as "soapUsedQty", t.machine_number as "machineNumber", 
              t.total_amount as "totalAmount", t.picked_up as "pickedUp", b.name as "branchName"
       FROM laundry_transactions t
@@ -43,7 +47,7 @@ async function getFilteredTransactions(branchId) {
     `, [branchId]);
   } else {
     txRes = await query(`
-      SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg", 
+      SELECT t.id, t.date::text as "dateStr", t.customer_name as "customerName", t.weight_kg as "weightKg", 
              t.soap_used_qty as "soapUsedQty", t.machine_number as "machineNumber", 
              t.total_amount as "totalAmount", t.picked_up as "pickedUp", b.name as "branchName"
       FROM laundry_transactions t
@@ -57,10 +61,7 @@ function generateReportSummaries(transactions, groupingKeyFn, sortingFn) {
   const groupings = {};
   
   transactions.forEach(t => {
-    // Format date field properly if it is a Date object
-    const rawDate = t.date;
-    const key = groupingKeyFn(rawDate);
-    
+    const key = groupingKeyFn(t.dateStr);
     if (!groupings[key]) {
       groupings[key] = {
         period: key,
@@ -74,7 +75,7 @@ function generateReportSummaries(transactions, groupingKeyFn, sortingFn) {
     const list = group.transactions;
     const totalKg = list.reduce((sum, curr) => sum + Number(curr.weightKg || 0), 0);
     const totalSoap = list.reduce((sum, curr) => sum + Number(curr.soapUsedQty || 0), 0);
-    // Sales are only recognized/inputted once the laundry is claimed / picked up
+    // Sales are only recognized once the laundry is claimed / picked up
     const totalRevenue = list
       .filter(curr => curr.pickedUp === true)
       .reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
@@ -130,7 +131,7 @@ router.get('/daily', async (req, res) => {
     const transactions = await getFilteredTransactions(branchId);
     const summaries = generateReportSummaries(
       transactions,
-      (date) => date instanceof Date ? date.toISOString().split('T')[0] : date,
+      (dateStr) => dateStr || 'Unknown', // date::text is already 'YYYY-MM-DD'
       (a, b) => b.period.localeCompare(a.period) // Descending sorted dates
     );
     return res.json(summaries);
@@ -166,9 +167,8 @@ router.get('/monthly', async (req, res) => {
     // Grouping by "YYYY-MM" to sort, then map back to MMMM YYYY label
     const groupings = {};
     transactions.forEach(t => {
-      const rawDate = t.date;
-      const sortKey = getSortableMonthString(rawDate);
-      const label = getMonthYearString(rawDate);
+      const sortKey = getSortableMonthString(t.dateStr);
+      const label = getMonthYearString(t.dateStr);
       
       if (!groupings[sortKey]) {
         groupings[sortKey] = {
@@ -184,7 +184,7 @@ router.get('/monthly', async (req, res) => {
       const list = group.transactions;
       const totalKg = list.reduce((sum, curr) => sum + Number(curr.weightKg || 0), 0);
       const totalSoap = list.reduce((sum, curr) => sum + Number(curr.soapUsedQty || 0), 0);
-      // Sales are only recognized/inputted once the laundry is claimed / picked up
+      // Sales are only recognized once the laundry is claimed / picked up
       const totalRevenue = list
         .filter(curr => curr.pickedUp === true)
         .reduce((sum, curr) => sum + Number(curr.totalAmount || 0), 0);
