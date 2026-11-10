@@ -27,10 +27,13 @@ import {
   TableBody,
   Tabs,
   Tab,
+  IconButton,
+  Tooltip as MuiTooltip,
 } from '@mui/material';
 import {
   Warning as WarningIcon,
   Store as BranchIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -49,14 +52,22 @@ const AdminDashboard = () => {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const [tableTab, setTableTab] = useState(0); // 0 = Daily Income, 1 = Expenses, 2 = Income by Service
   const [filterType, setFilterType] = useState('monthly'); // 'monthly' | 'annual'
   
-  const currentLocalDate = new Date();
-  const todayStr = currentLocalDate.toISOString().split('T')[0];
-  const [selectedMonth, setSelectedMonth] = useState(currentLocalDate.getMonth() + 1); // 1-12
-  const [selectedYear, setSelectedYear] = useState(currentLocalDate.getFullYear());
+  const getLocalToday = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const todayStr = getLocalToday();
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const monthsList = [
     { value: 1, label: 'January' },
@@ -115,6 +126,20 @@ const AdminDashboard = () => {
       setLoading(false);
     };
     loadStats();
+
+    // Auto-refresh when tab/window regains focus or every 30s so claimed items show up immediately
+    const handleFocus = () => {
+      fetchStats();
+    };
+    window.addEventListener('focus', handleFocus);
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, [filterType, selectedMonth, selectedYear, selectedBranchId]);
 
   if (loading) {
@@ -237,6 +262,28 @@ const AdminDashboard = () => {
               ))}
             </Select>
           </FormControl>
+
+          <MuiTooltip title="Refresh Dashboard">
+            <IconButton
+              onClick={async () => {
+                setRefreshing(true);
+                await fetchStats();
+                setRefreshing(false);
+              }}
+              disabled={refreshing}
+              size="small"
+              sx={{
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                height: 36,
+                width: 36,
+              }}
+            >
+              {refreshing ? <CircularProgress size={18} /> : <RefreshIcon fontSize="small" />}
+            </IconButton>
+          </MuiTooltip>
         </Stack>
       </Box>
 

@@ -67,62 +67,92 @@ const assembleTransactionObj = (row, serviceItems = []) => {
   };
 };
 
+// Auto-claim helper: auto-claim pickleball, gym session, gym student athlete, or non-laundry category
+const shouldAutoClaimTransaction = (category, servicesList = []) => {
+  if (category && category.toLowerCase() !== 'laundry') return true;
+  return (servicesList || []).some(s => {
+    const id = Number(s.serviceId || s.id);
+    if ([12, 15, 16].includes(id)) return true; // GYM SESSION (12), pickle ball (15), gym student athlete (16)
+    const name = (s.serviceName || s.name || '').toLowerCase();
+    return name.includes('pickle') || name.includes('gym');
+  });
+};
+
 // GET /api/transactions (Authenticated)
 router.get('/', async (req, res) => {
   const isAdmin = req.user.role === 'ROLE_ADMIN';
-  
+
   try {
-    let txRes;
+    // Single query: fetch all transactions + all their service items in one round-trip
+    // using LEFT JOIN on transaction_service_items to eliminate the N+1 query problem
+    let combinedRes;
     if (isAdmin) {
-      txRes = await query(`
-        SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg", 
-               t.soap_used_qty as "soapUsedQty", t.soap_remaining_qty as "soapRemainingQty", 
-               t.machine_number as "machineNumber", t.payment_method as "paymentMethod", 
-               t.reference_number as "referenceNumber", t.total_amount as "totalAmount", 
+      combinedRes = await query(`
+        SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg",
+               t.soap_used_qty as "soapUsedQty", t.soap_remaining_qty as "soapRemainingQty",
+               t.machine_number as "machineNumber", t.payment_method as "paymentMethod",
+               t.reference_number as "referenceNumber", t.total_amount as "totalAmount",
                t.created_at as "createdAt", t.picked_up as "pickedUp", t.picked_up_at as "pickedUpAt",
                t.category,
                p.id as "productId", p.name as "productName", p.unit as "productUnit",
                u.id as "userId", u.username, u.full_name as "userFullName",
-               b.id as "branchId", b.name as "branchName", b.location as "branchLocation"
+               b.id as "branchId", b.name as "branchName", b.location as "branchLocation",
+               i.id as "itemId", i.quantity as "itemQty", i.price_at_transaction as "itemPrice",
+               s.id as "serviceId", s.name as "serviceName", s.rate as "serviceRate", s.unit as "serviceUnit"
         FROM laundry_transactions t
         LEFT JOIN soap_products p ON t.soap_product_id = p.id
         LEFT JOIN users u ON t.user_id = u.id
         LEFT JOIN branches b ON t.branch_id = b.id
-        ORDER BY t.id DESC
+        LEFT JOIN transaction_service_items i ON i.transaction_id = t.id
+        LEFT JOIN laundry_services s ON i.service_id = s.id
+        ORDER BY t.id DESC, i.id ASC
       `);
     } else {
-      txRes = await query(`
-        SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg", 
-               t.soap_used_qty as "soapUsedQty", t.soap_remaining_qty as "soapRemainingQty", 
-               t.machine_number as "machineNumber", t.payment_method as "paymentMethod", 
-               t.reference_number as "referenceNumber", t.total_amount as "totalAmount", 
+      combinedRes = await query(`
+        SELECT t.id, t.date, t.customer_name as "customerName", t.weight_kg as "weightKg",
+               t.soap_used_qty as "soapUsedQty", t.soap_remaining_qty as "soapRemainingQty",
+               t.machine_number as "machineNumber", t.payment_method as "paymentMethod",
+               t.reference_number as "referenceNumber", t.total_amount as "totalAmount",
                t.created_at as "createdAt", t.picked_up as "pickedUp", t.picked_up_at as "pickedUpAt",
                t.category,
                p.id as "productId", p.name as "productName", p.unit as "productUnit",
                u.id as "userId", u.username, u.full_name as "userFullName",
-               b.id as "branchId", b.name as "branchName", b.location as "branchLocation"
+               b.id as "branchId", b.name as "branchName", b.location as "branchLocation",
+               i.id as "itemId", i.quantity as "itemQty", i.price_at_transaction as "itemPrice",
+               s.id as "serviceId", s.name as "serviceName", s.rate as "serviceRate", s.unit as "serviceUnit"
         FROM laundry_transactions t
         LEFT JOIN soap_products p ON t.soap_product_id = p.id
         LEFT JOIN users u ON t.user_id = u.id
         LEFT JOIN branches b ON t.branch_id = b.id
+        LEFT JOIN transaction_service_items i ON i.transaction_id = t.id
+        LEFT JOIN laundry_services s ON i.service_id = s.id
         WHERE t.user_id = $1
-        ORDER BY t.date DESC, t.id DESC
+        ORDER BY t.id DESC, i.id ASC
       `, [req.user.id]);
     }
 
-    const transactions = [];
-    for (const row of txRes.rows) {
-      // Fetch service items
-      const itemsRes = await query(`
-        SELECT i.id, i.quantity, i.price_at_transaction as "priceAtTransaction", 
-               s.id as "serviceId", s.name as "serviceName", s.rate as "serviceRate", s.unit as "serviceUnit"
-        FROM transaction_service_items i
-        JOIN laundry_services s ON i.service_id = s.id
-        WHERE i.transaction_id = $1
-      `, [row.id]);
-
-      transactions.push(assembleTransactionObj(row, itemsRes.rows));
+    // Group rows by transaction ID
+    const txMap = new Map();
+    for (const row of combinedRes.rows) {
+      if (!txMap.has(row.id)) {
+        txMap.set(row.id, { txRow: row, items: [] });
+      }
+      if (row.itemId !== null) {
+        txMap.get(row.id).items.push({
+          id: row.itemId,
+          quantity: row.itemQty,
+          priceAtTransaction: row.itemPrice,
+          serviceId: row.serviceId,
+          serviceName: row.serviceName,
+          serviceRate: row.serviceRate,
+          serviceUnit: row.serviceUnit,
+        });
+      }
     }
+
+    const transactions = Array.from(txMap.values()).map(({ txRow, items }) =>
+      assembleTransactionObj(txRow, items)
+    );
 
     return res.json(transactions);
   } catch (err) {
@@ -259,6 +289,15 @@ router.post('/', async (req, res) => {
 
     // Update total amount
     await client.query('UPDATE laundry_transactions SET total_amount = $1 WHERE id = $2', [totalAmount, transactionId]);
+
+    // Auto-claim: if transaction contains pickleball, gym session, gym student athlete, or non-laundry category
+    const autoClaim = shouldAutoClaimTransaction(category, insertedItems);
+    if (autoClaim) {
+      await client.query(
+        `UPDATE laundry_transactions SET picked_up = true, picked_up_at = NOW() WHERE id = $1`,
+        [transactionId]
+      );
+    }
 
     await client.query('COMMIT');
 
@@ -446,6 +485,15 @@ router.put('/:id', async (req, res) => {
 
     // 6. Update total amount
     await client.query('UPDATE laundry_transactions SET total_amount = $1 WHERE id = $2', [totalAmount, id]);
+
+    // Auto-claim: if updated transaction contains pickleball, gym session, gym student athlete, or non-laundry category
+    const autoClaim = shouldAutoClaimTransaction(category, insertedItems);
+    if (autoClaim) {
+      await client.query(
+        `UPDATE laundry_transactions SET picked_up = true, picked_up_at = COALESCE(picked_up_at, NOW()) WHERE id = $1`,
+        [id]
+      );
+    }
 
     await client.query('COMMIT');
 

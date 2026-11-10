@@ -27,11 +27,10 @@ router.get('/stats', async (req, res) => {
     // Get today's date in Philippine time (UTC+8)
     const todayStr = getPHToday();
 
-    // Today's transactions — count all drop-offs today
+    // Today's transactions — count washes/drop-offs today
     let todayQuery = `
       SELECT COALESCE(COUNT(*), 0) as count, 
-             COALESCE(SUM(weight_kg), 0) as weight,
-             COALESCE(SUM(CASE WHEN picked_up = true THEN total_amount ELSE 0 END), 0) as revenue
+             COALESCE(SUM(weight_kg), 0) as weight
       FROM laundry_transactions
       WHERE date::text = $1
     `;
@@ -43,7 +42,24 @@ router.get('/stats', async (req, res) => {
     const todayTxsRes = await query(todayQuery, todayParams);
     const totalTransactionsToday = parseInt(todayTxsRes.rows[0].count, 10);
     const totalKgWashedToday = Number(todayTxsRes.rows[0].weight);
-    const totalRevenueToday = Number(todayTxsRes.rows[0].revenue);
+
+    // Today's collected revenue: all claimed/paid transactions today (claimed today or walk-in today)
+    let todayRevQuery = `
+      SELECT COALESCE(SUM(total_amount), 0) as revenue
+      FROM laundry_transactions
+      WHERE picked_up = true
+        AND (
+          (picked_up_at AT TIME ZONE 'Asia/Manila')::date::text = $1
+          OR date::text = $1
+        )
+    `;
+    let todayRevParams = [todayStr];
+    if (branchId) {
+      todayRevQuery += ` AND branch_id = $2`;
+      todayRevParams.push(branchId);
+    }
+    const todayRevRes = await query(todayRevQuery, todayRevParams);
+    const totalRevenueToday = Number(todayRevRes.rows[0].revenue);
     const totalCustomersToday = totalTransactionsToday;
 
     // Soap stocks status

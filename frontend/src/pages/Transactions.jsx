@@ -72,6 +72,14 @@ const calculateDurationInShop = (createdAtStr, pickedUpAtStr) => {
   }
 };
 
+const getLocalTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Transactions = () => {
   const { user, isAdmin } = useAuth();
   const [transactions, setTransactions] = useState([]);
@@ -198,7 +206,7 @@ const Transactions = () => {
   const handleOpenModal = () => {
     setEditingTransactionId(null);
     setCategory('laundry');
-    setTransactionDate(new Date().toISOString().split('T')[0]);
+    setTransactionDate(getLocalTodayString());
     setOpenModal(true);
     setModalError('');
     setCustomerName('');
@@ -217,7 +225,7 @@ const Transactions = () => {
   const handleEditTransaction = (tx) => {
     setEditingTransactionId(tx.id);
     setCategory(tx.category || 'laundry');
-    setTransactionDate(tx.date || new Date().toISOString().split('T')[0]);
+    setTransactionDate(tx.date || getLocalTodayString());
     setCustomerName(tx.customerName || '');
     setWeightKg(tx.weightKg !== null && tx.weightKg !== undefined ? tx.weightKg.toString() : '');
     setSoapUsedQty(tx.soapUsedQty !== null && tx.soapUsedQty !== undefined ? tx.soapUsedQty.toString() : '');
